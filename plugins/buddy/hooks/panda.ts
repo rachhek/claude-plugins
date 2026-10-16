@@ -63,21 +63,15 @@ function sitting(s: Scene): Pose {
     // straight down into the body
     ell('K', 12.8, 15.8, 8.4, 2.6),
     rect('K', 5, 14.6, 15.6, 3.2),
-    // Shoulders filling in under the head on both sides, so the outline runs
-    // smoothly from the head down the back with no notch
-    ell('K', 6.2, 15, 2.4, 2.5),
-    ell('K', 19.4, 15, 2.4, 2.5),
     // Ears at the top corners of the head
     ell('K', 6.6, 2.6, 2.4, 2.2),
     ell('K', 18.8, 2.4, 2.2, 2.1),
     ell('k', 6, 2, 0.8, 0.7),
     // A round head, a bit narrower than the body
     ...furBall(12.8, 8.2, 8.2, 6.8),
-    // Dark eye patches, close together, drooping outwards and down
-    ell('P', 10.4, 8.2, 2.2, 2.4),
-    ell('P', 9.7, 9.5, 1.9, 1.9),
-    ell('P', 16.4, 8.1, 2.3, 2.5),
-    ell('P', 17.1, 9.4, 2, 2),
+    // Eye patches, close together
+    ell('P', 10.4, 8.4, 2.3, 2.4),
+    ell('P', 16.4, 8.3, 2.4, 2.5),
     // A small triangle nose under the gap between the eyes, a short stroke
     // and a straight mouth line: calm and content
     rect('N', 12.3, 10.8, 3, 0.7),
@@ -220,7 +214,7 @@ const TERM_ROWS = 16 // pixel rows, two per text row
 const TERM = {
   K: '#50545c',
   k: '#62666f',
-  P: '#5c606a',
+  P: '#6a6e78',
   E: '#1e1e1e',
   W: '#f3efe4',
   S: '#cfc9bb',
@@ -237,7 +231,7 @@ const SVG = {
   O: '#16171b',
   K: '#33363d',
   k: '#4b4f58',
-  P: '#40444d',
+  P: '#585c66',
   E: '#0e0f12',
   W: '#f4f0e5',
   S: '#d7d0c1',
