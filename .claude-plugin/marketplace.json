@@ -1,0 +1,12 @@
+{
+  "name": "rachhek",
+  "description": "Rachhek's plugins and mods for Claude Code",
+  "owner": { "name": "Rachhek Shrestha", "url": "https://rachhek.net" },
+  "plugins": [
+    {
+      "name": "buddy",
+      "source": "./plugins/buddy",
+      "description": "A pixel buddy above your prompt (dino or panda) that jumps at your messages, runs while Claude works and naps when you're away"
+    }
+  ]
+}

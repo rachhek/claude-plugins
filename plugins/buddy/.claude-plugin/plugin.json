@@ -1,0 +1,12 @@
+{
+  "name": "buddy",
+  "displayName": "Buddy",
+  "version": "0.1.0",
+  "description": "A pixel buddy above your prompt (dino or panda) that jumps at your messages, runs while Claude works and naps when you're away",
+  "author": { "name": "Rachhek Shrestha", "url": "https://rachhek.net" },
+  "homepage": "https://github.com/rachhek/claude-plugins/tree/main/plugins/buddy",
+  "repository": "https://github.com/rachhek/claude-plugins",
+  "license": "MIT",
+  "keywords": ["mod", "fun", "pixel-art", "companion"],
+  "types": "./types/index.d.ts"
+}
