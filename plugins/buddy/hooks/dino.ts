@@ -61,7 +61,7 @@ export const dino: Character = {
   width: W,
   canMunch: false,
 
-  terminal(s, cols) {
+  terminal(s, cols, _rows) {
     let ground = ''
     for (let i = 0; i < cols; i++) ground += GROUND[(i + s.ground) % GROUND.length]
     return {

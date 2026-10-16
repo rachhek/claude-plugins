@@ -7,7 +7,8 @@ export type Character = {
   width: number
   /** Whether it sits down for a snack when idle */
   canMunch: boolean
-  terminal: (s: Scene, cols: number) => TerminalDrawing
+  /** Draw for the terminal, in `cols` columns and up to `rows` pixel rows (two per text row) */
+  terminal: (s: Scene, cols: number, rows: number) => TerminalDrawing
   svg: (s: Scene, cols: number) => string
   lines: {
     hi: string

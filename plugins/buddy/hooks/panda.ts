@@ -292,9 +292,8 @@ function paint(p: { w: number; h: number; shapes: Shape[] }, scale: number, with
 
 // ---------------------------------------------------------------- drawing
 
-const TERM_SCALE = 0.62
-const TERM_W = 24
-const TERM_ROWS = 16 // pixel rows, two per text row
+const TERM_W = 36 // columns the terminal strip may take
+const TERM_MAX_ROWS = 24 // pixel rows at most, two per text row
 
 const TERM = {
   E: '#1e2026',
@@ -355,16 +354,19 @@ export const panda: Character = {
   width: TERM_W,
   canMunch: true,
 
-  terminal(s, cols) {
+  terminal(s, cols, rows) {
     let ground = ''
     for (let i = 0; i < cols; i++) ground += GRASS[i % GRASS.length]
     const p = pose(s)
-    // Scale down to the terminal, narrower still for a pose too wide to fit
-    const sp = mirror(render(p, Math.min(TERM_SCALE, TERM_W / p.w, TERM_ROWS / p.h), false), s.dir)
+    // As many pixel rows as the band allows, up to the cap; the sitting pose
+    // sets the scale, so the other poses come out in proportion to it
+    const pixelRows = Math.max(8, Math.min(TERM_MAX_ROWS, rows - (rows % 2)))
+    const scale = Math.min(pixelRows / SIT_H, TERM_W / p.w, pixelRows / p.h)
+    const sp = mirror(render(p, scale, false), s.dir)
     // Feet on the bottom row, lifted while jumping as far as the band allows
-    const lift = Math.min(s.air, TERM_ROWS - sp.length)
+    const lift = Math.min(s.air, pixelRows - sp.length)
     return {
-      rows: halfBlocks(sp, TERM_ROWS - sp.length - lift, TERM_W, TERM_ROWS, TERM),
+      rows: halfBlocks(sp, pixelRows - sp.length - lift, TERM_W, pixelRows, TERM),
       ground,
       groundColor: 'green',
     }

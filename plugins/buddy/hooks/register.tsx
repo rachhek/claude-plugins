@@ -316,7 +316,9 @@ export const register: Register = on => {
       ours = <Svg source={who.svg(at, cols)} alt={s.bubble ? `Your buddy says: ${s.bubble}` : 'Your buddy'} />
     } else {
       const { Box, Text } = $.ui.resolve(e)
-      const drawing = who.terminal(at, cols)
+      // Pixel rows the buddy may use: the band's rows less one for the ground
+      const rows = Math.max(8, (e.props.maxRows - 1) * 2)
+      const drawing = who.terminal(at, cols, rows)
       const lines = drawing.rows.map((row, i) => {
         const sprite = runs(row).map((run, j) =>
           run.fg ? (
