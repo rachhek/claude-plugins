@@ -36,7 +36,7 @@ function sitting(s: Scene): Pose {
   const frontFoot = [ell('O', 21.6, 24.4, 3.6, 3.7), ell('K', 21.6, 24.4, 3, 3.2), ell('k', 21.2, 23.6, 1.2, 1)]
   const shapes: Shape[] = [
     // Dark body
-    ell('K', 13, 21.8, 10.4, 6.6),
+    ell('K', 13, 21.4, 10.6, 7.2),
     // The white hip on the back edge, with the back foot under it
     ell('S', 4.8, 21.6, 2.3, 4.3),
     ell('W', 4.7, 21.2, 2, 3.9),
@@ -59,7 +59,10 @@ function sitting(s: Scene): Pose {
     // The big front foot, bulging out on the facing side
     ...(s.isMunching ? [] : frontFoot),
     // The collar across the chest, under the head
-    ell('K', 12.8, 15.6, 7.4, 1.9),
+    // A broad neck: the collar as wide as the head, its sides running
+    // straight down into the body
+    ell('K', 12.8, 15.8, 8.4, 2.6),
+    rect('K', 5, 14.6, 15.6, 3.2),
     // Ears at the top corners of the head
     ell('K', 6.6, 2.6, 2.4, 2.2),
     ell('K', 18.8, 2.4, 2.2, 2.1),
