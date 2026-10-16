@@ -40,6 +40,11 @@ let kind: Kind = 'dino'
 const SIZE_ROWS = { small: 16, medium: 24, large: 34 } as const
 type Size = keyof typeof SIZE_ROWS
 let size: Size = 'medium'
+// Whether the terminal draws the buddy as a real picture: on, off, or auto
+// (on in terminals known to draw pictures: kitty, Ghostty, WezTerm)
+type Hd = 'auto' | 'on' | 'off'
+let hd: Hd = 'auto'
+let terminalDrawsPictures = false
 let x = INITIAL.x
 let dir: 1 | -1 = 1
 let ground = 0
@@ -164,7 +169,11 @@ async function loadSaved($: EngineInterface) {
   await update($, isHidden, () => savedHidden === true)
   const savedSize = await $.store.get('size')
   if (savedSize === 'small' || savedSize === 'medium' || savedSize === 'large') size = savedSize
+  const savedHd = await $.store.get('hd')
+  if (savedHd === 'auto' || savedHd === 'on' || savedHd === 'off') hd = savedHd
 }
+
+const useHd = () => hd === 'on' || (hd === 'auto' && terminalDrawsPictures)
 
 async function choose($: EngineInterface, next: Kind) {
   kind = next
@@ -183,11 +192,17 @@ async function setHidden($: EngineInterface, hide: boolean) {
 // ---------------------------------------------------------------- hooks
 
 const PERSON_ORIGINS = new Set(['composer', 'bridge', 'sdk', 'unclassified'])
-const USAGE = 'Usage: /buddy [dino | panda | on | off | jump | snack | size small|medium|large]'
+const USAGE = 'Usage: /buddy [dino | panda | on | off | jump | snack | size small|medium|large | hd on|off|auto]'
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await loadSaved($)
+    try {
+      const term = `${(await $.env.get('TERM')) ?? ''} ${(await $.env.get('TERM_PROGRAM')) ?? ''}`
+      terminalDrawsPictures = /kitty|ghostty|wezterm/i.test(term)
+    } catch {
+      // The environment is off limits here; stay with half blocks
+    }
     hello()
     // Ten frames a second, written to $.state only when the picture changes
     $.clock.every(TICK_MS, () => {
@@ -201,7 +216,7 @@ export const register: Register = on => {
       await $.command.register({
         name: 'buddy',
         description: 'Pick your buddy (dino or panda), or show, hide or poke it',
-        argumentHint: '[dino | panda | on | off | jump | snack | size <small|medium|large>]',
+        argumentHint: '[dino | panda | on | off | jump | snack | size <small|medium|large> | hd <on|off|auto>]',
         immediate: true,
       })
     } catch {
@@ -255,6 +270,19 @@ export const register: Register = on => {
       await $.store.set('size', want)
       $.ui.invalidate('ui.render')
       return { text: `Buddy size: ${want}.` }
+    }
+    if (arg.startsWith('hd')) {
+      const want = arg.slice(2).trim()
+      if (want !== 'on' && want !== 'off' && want !== 'auto') {
+        const state = hd === 'auto' ? (terminalDrawsPictures ? 'auto, on here' : 'auto, off here') : hd
+        return {
+          text: `Buddy hd is ${state}. Usage: /buddy hd on|off|auto. On draws the buddy as a real picture, which kitty, Ghostty and WezTerm can show; in other terminals only its name appears, so turn it off again there.`,
+        }
+      }
+      hd = want
+      await $.store.set('hd', want)
+      $.ui.invalidate('ui.render')
+      return { text: `Buddy hd: ${want}.` }
     }
     if (arg !== '') return { text: USAGE }
 
@@ -331,11 +359,39 @@ export const register: Register = on => {
       const { Svg } = $.ui.resolve(e)
       ours = <Svg source={who.svg(at, cols)} alt={s.bubble ? `Your buddy says: ${s.bubble}` : 'Your buddy'} />
     } else {
-      const { Box, Text } = $.ui.resolve(e)
+      const { Box, Text, Image } = $.ui.resolve(e)
       // Pixel rows the buddy may use: the chosen size, within the band's rows
       // less one for the ground
       const rows = Math.max(8, Math.min(SIZE_ROWS[size], (e.props.maxRows - 1) * 2))
-      const drawing = who.terminal(at, cols, rows)
+      const drawing = who.terminal(at, cols, rows, useHd())
+      const ground = (
+        <Text color={drawing.groundColor} dimColor wrap="truncate">
+          {drawing.ground}
+        </Text>
+      )
+      if (drawing.image) {
+        // A real picture, with the speech bubble on its own row above it
+        const img = drawing.image
+        ours = (
+          <Box flexDirection="column">
+            {s.bubble ? (
+              <Box flexDirection="row" paddingLeft={x}>
+                <Text italic wrap="truncate">{`‹${s.bubble}›`}</Text>
+              </Box>
+            ) : null}
+            <Box flexDirection="row" paddingLeft={x}>
+              <Image
+                key="buddy"
+                source={{ rgba: img.rgba, width: img.width, height: img.height }}
+                columns={img.columns}
+                rows={img.rows}
+                alt={`a pixel ${kind}`}
+              />
+            </Box>
+            {ground}
+          </Box>
+        )
+      } else {
       const lines = drawing.rows.map((row, i) => {
         const sprite = runs(row).map((run, j) =>
           run.fg ? (
@@ -383,11 +439,10 @@ export const register: Register = on => {
       ours = (
         <Box flexDirection="column">
           {lines}
-          <Text color={drawing.groundColor} dimColor wrap="truncate">
-            {drawing.ground}
-          </Text>
+          {ground}
         </Box>
       )
+      }
     }
 
     // Keep whatever other mods draw in the band, below the buddy

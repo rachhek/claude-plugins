@@ -35,6 +35,7 @@ Then run `/reload-plugins` in an open session, or start a new one.
 | `/buddy jump` | Make it jump |
 | `/buddy snack` | Give the panda some bamboo |
 | `/buddy size small\|medium\|large` | How tall it is in the terminal; `large` shows the art pixel for pixel and needs a taller window |
+| `/buddy hd on\|off\|auto` | Draw a real picture instead of text blocks in terminals that can show images (Ghostty, kitty, WezTerm). `auto` (the default) turns it on when it detects one of those |
 
 ## Develop
 
@@ -48,4 +49,4 @@ Characters live in `hooks/dino.ts` and `hooks/panda.ts`; the engine is `hooks/re
 
 ## Art
 
-The panda's sitting and walking poses are pixel art in `art/` (facing right): `sit.png` (30 × 33) and `walk-1.png`, `walk-2.png` (50 × 22). They're read into `hooks/panda.ts` as the `SIT` and `WALK` rows. Blinking, sunglasses, chewing and the bamboo are drawn over the sitting pose in code. The sleeping pose is still built from shapes.
+The panda's sitting and walking poses are pixel art in `art/` (facing right): `sit.png` (30 × 33) and `walk-1.png`, `walk-2.png` (50 × 22). They're read into `hooks/panda.ts` as the `SIT` and `WALK` rows. Blinking, sunglasses, chewing and the bamboo are drawn over the sitting pose in code. When it falls asleep it sits down, closes its eyes and snores.

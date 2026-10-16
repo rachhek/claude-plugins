@@ -8,7 +8,7 @@ export type Character = {
   /** Whether it sits down for a snack when idle */
   canMunch: boolean
   /** Draw for the terminal, in `cols` columns and up to `rows` pixel rows (two per text row) */
-  terminal: (s: Scene, cols: number, rows: number) => TerminalDrawing
+  terminal: (s: Scene, cols: number, rows: number, hd: boolean) => TerminalDrawing
   svg: (s: Scene, cols: number) => string
   lines: {
     hi: string
@@ -27,6 +27,8 @@ export type TerminalDrawing = {
   rows: Cell[][]
   ground: string
   groundColor: string
+  /** A real picture in place of the rows, for a terminal that can draw one */
+  image?: { rgba: string; width: number; height: number; columns: number; rows: number }
 }
 
 export const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(Math.random() * xs.length)] as T
@@ -220,4 +222,45 @@ export function halfBlocksFromPixels(px: (string | null)[][], top: number, width
     rows.push(row)
   }
   return rows
+}
+
+/** The sprite as RGBA pixels, each art pixel a `factor` by `factor` block, base64 */
+export function spriteToRgba(sprite: string[], colours: Record<string, string>, factor: number): { rgba: string; width: number; height: number } {
+  const H = sprite.length
+  const W = sprite[0]?.length ?? 0
+  const width = W * factor
+  const height = H * factor
+  const bytes = new Uint8Array(width * height * 4)
+  const rgb = new Map<string, [number, number, number]>()
+  for (const [k, v] of Object.entries(colours)) rgb.set(k, hexToRgb(v))
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const c = rgb.get(sprite[y]?.[x] ?? '.')
+      if (!c) continue
+      for (let dy = 0; dy < factor; dy++)
+        for (let dx = 0; dx < factor; dx++) {
+          const i = ((y * factor + dy) * width + x * factor + dx) * 4
+          bytes[i] = c[0]
+          bytes[i + 1] = c[1]
+          bytes[i + 2] = c[2]
+          bytes[i + 3] = 255
+        }
+    }
+  return { rgba: base64(bytes), width, height }
+}
+
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+function base64(bytes: Uint8Array): string {
+  let out = ''
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i] ?? 0
+    const b = bytes[i + 1]
+    const c = bytes[i + 2]
+    const n = (a << 16) | ((b ?? 0) << 8) | (c ?? 0)
+    out += B64[(n >> 18) & 63]! + B64[(n >> 12) & 63]!
+    out += b === undefined ? '=' : B64[(n >> 6) & 63]!
+    out += c === undefined ? '=' : B64[n & 63]!
+  }
+  return out
 }

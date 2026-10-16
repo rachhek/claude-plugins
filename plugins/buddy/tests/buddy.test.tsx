@@ -16,9 +16,10 @@ const BAND = {
 
 const RUN = { origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } } as const
 
-const setUp = (on: On) => {
+const setUp = (on: On, env: Record<string, string> = { TERM: 'xterm-256color' }) => {
   const clock = mock.clock(on)
   mock.store(on)
+  mock.env(on, env)
   on('prompt.submit', async (_$, e) => ({ text: e.text }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('command.run', async () => ({}))
@@ -69,4 +70,24 @@ test('/buddy off hides it', async ($, on) => {
   const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await term.find({ type: 'Text', text: /[█▀▄]/ })).toBeUndefined()
   await term.unmount()
+})
+
+test('in a terminal that draws pictures, the panda is a real image', async ($, on) => {
+  const clock = setUp(on, { TERM: 'xterm-ghostty', TERM_PROGRAM: 'ghostty' })
+  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'buddy', args: 'panda', ...RUN })
+  await clock.advance(300)
+
+  const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await term.find({ type: 'Image' })).toBeDefined()
+  expect(await term.find({ type: 'Text', text: /[█▀▄]/ })).toBeUndefined()
+  await term.unmount()
+
+  // /buddy hd off goes back to half blocks
+  await $.command.run({ command: 'buddy', args: 'hd off', ...RUN })
+  await clock.advance(300)
+  const plain = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await plain.find({ type: 'Image' })).toBeUndefined()
+  expect(await plain.find({ type: 'Text', text: /[█▀▄]/ })).toBeDefined()
+  await plain.unmount()
 })
