@@ -27,7 +27,7 @@ const furBall = (cx: number, cy: number, rx: number, ry: number): Shape[] => [
   ell('W', cx - rx * 0.08, cy - ry * 0.1, rx * 0.92, ry * 0.9),
 ]
 
-// The sitting panda is hand-drawn pixel art (art/sit.png), facing right.
+// The sitting panda is pixel art (art/sit.png), facing right.
 // E outline and eyes, K dark fur, k lighter dark fur, W white fur, S shaded white fur
 const SIT = [
   '.....EEEE..........EEE........',
@@ -109,28 +109,62 @@ function sitting(s: Scene): Pose {
   return { w: SIT_W, h: SIT_H, sprite: rows }
 }
 
+// The walking panda is pixel art too (art/walk-1.png and art/walk-2.png),
+// two steps, facing right
+const WALK = [
+  [
+    '................EEEEEEEEEEE.......................',
+    '............EEEEWWWWWWWSKKKEEEEEE...EE............',
+    '..........EESSSWWWWWWWWSKKKKKKKSSEEEWWEEEE........',
+    '.........ESSWWWWWWWWWWSKKKKKKKKSWWWWWWWKKEE.......',
+    '........ESWWWWWWWWWWWWSKKKKKKKKKSWWWWWKKKESE......',
+    '.......EWWWWWWWWWWWWWWSKKKKKKKKKKSWWWEKKEESE......',
+    '......EWWWWWWWWWWWWWWWSKKKKKKKKKKSWWWEEESSWWE.....',
+    '.....ESWWWWWWWWSWWWWWSSKKKKKKKKKKESWSSESWWWWWSE...',
+    '.....EWWWWWWSWWWSWWWWSKKKKKKKKKKKKSWWSSWWWWWWWE...',
+    '....ESSSSSSSSSWWWWWWWKKKKKKKKKKKKKSWWWWWWWkkWSE...',
+    '....ESSSSkkkkSSWWWWWSKKKKKKKKKKKKKKWWSWWWkKEEWE...',
+    '...ESSSSkkkkkkSSWWWSSKKKKKKKKKKKKKKSWSWWWkEEEWWE..',
+    '...ESSSEKkkkkkkSSSSSKKKKKKKKKKKKKEESWSWWkkEEWWWWE.',
+    '...ESSSEKKKKkKKKkSSSKKKKKKKKKKKKEEESSSSWWkkWWWWWE.',
+    '....ESSEKKKKKKKKKSSEKKKKKKKKKKKEEEEEEEESSWWWWWkEE.',
+    '...EEEEEEKKKKKKKKESEEEKKKKKKKEEEEEEKEEEEEESSSEE...',
+    '..EKKKKKEKKKKKKKKESEEEKKKKKEEEEEEKKEE.....EEE.....',
+    '.EKKKKKKEEEKKKKKKEEEEKKKKKE...EEKKKKKE............',
+    'EKKKKKKE..EKKKKKEE.EEKKKKKE....EEKKKKKEE..........',
+    'EKKKKEE....EKKKKEE..EKKKKEE.....EEKKKKKKE.........',
+    'EKKKKE.....EEKKKKKE.EEKKKE........EEKKKKkE........',
+    '.EEEEE......EEEEEEE..EEEkKEE.......EEEEEEE........',
+  ],
+  [
+    '................EEEEEEEEEEE.......................',
+    '.............EEEWWWWWWWSKKKEEEEEEE...EE...........',
+    '..........EEESSWWWWWWWWSKKKKKKKSSSEEEWWEEEE.......',
+    '.........ESSSWWWWWWWWWWKKKKKKKKKSWWWWWWWKKKE......',
+    '........ESWWWWWWWWWWWWWKKKKKKKKKKSWWWWWEKKKSE.....',
+    '.......EWWWWWWWWWWWWWWWKKKKKKKKKKSWWWWEKKEESEE....',
+    '......EWWWWWWWWWWWWWWWSKKKKKKKKKKKSWWWEKKkSWWEE...',
+    '.....ESWWWWWWWWSWWWWWWSKKKKKKKKKKKESWSSESWWWWWSE..',
+    '....EkWWWWWWSWWWSWWWWWSKKKKKKKKKKKKSWWSSWWWWWWWE..',
+    '....EWWWSSSSSSWWWWWWWWKKKKKKKKKKKKKSWWWWWWWkkWSE..',
+    '....EWWSSkkkkkSWWWWWWSKKKKKKKKKKKKKKWWWWWWkEEEWE..',
+    '...EWWWSkkkkkkkSWWWWSSKKKKKKKKKKKKKKSWSWWWkEEEWWE.',
+    '...EWWSKKKkkkkKkSSSSSKKKKKKKKKKKKKKESSSWWkkEEWWWWE',
+    '...ESSSEKKKKkkKKKSSSSKKKKKKKKKKKKKEEESSSWWkkWWWWWE',
+    '....EEEEEKKKKKKKKSSSKKKKKKKKKKKKEEEEEEESSSSWWSWWE.',
+    '...EEKKEEKKKKKKKKESSKKKKKKKKKKKEEEEEE..EEEESSSEE..',
+    '..EKKKKKEEKKKKKKKESSKKKKKKKKKE.EEEKKE......EEE....',
+    '.EKKKKKEEEEKKKKKKEEEEEEKKKKKEE.EEKKKKEE...........',
+    'EKKKKKEE..EEKKKKKE.....EKKKKKE..EEKKKKEE..........',
+    'EKKKEE.....EKKKKEKE....EKKKKE.....EKKKKKE.........',
+    'EKKKKE.....EEKKKKKKE....EKKkEE.....EKKKKkE........',
+    '.EEEEE......EEEEEkEE....EEEEkE......EEEEEE........',
+  ],
+]
+
 function walking(s: Scene): Pose {
-  // Legs swap between two strides
-  const stride = s.legs === 'b' ? 1.5 : 0
-  const shapes: Shape[] = [
-    ell('K', 5 + stride, 14.5, 2.6, 3.3),
-    ell('K', 16 - stride, 14.5, 2.6, 3.3),
-    ...furBall(11, 10, 9.5, 5.5),
-    // The far legs peek out behind
-    ell('K', 7.5 - stride, 14.8, 2.2, 2.9),
-    ell('K', 13.5 + stride, 14.8, 2.2, 2.9),
-    // Shoulder band running down into the front leg
-    ell('K', 15, 9.5, 2.9, 5.4),
-    ell('K', 18.2, 2.8, 2.2, 2.2),
-    ell('K', 21.6, 2.5, 2, 2),
-    ...furBall(20.5, 7.6, 5.4, 5),
-    ell('k', 17.7, 2.3, 0.9, 0.9),
-    ell('P', 21.8, 7.2, 1.7, 2.1),
-    px('N', [25, 8], [25, 9]),
-  ]
-  if (s.isBlinking) shapes.push(rect('L', 20.6, 7.4, 2.4, 0.6))
-  else shapes.push(ell('E', 22.2, 7.3, 0.9, 1.1), px('w', [21.9, 6.6]))
-  return { w: 26, h: 18, shapes }
+  const frame = WALK[s.legs === 'b' ? 1 : 0] ?? WALK[0] ?? []
+  return { w: frame[0]?.length ?? 0, h: frame.length, sprite: [...frame] }
 }
 
 function sleeping(): Pose {
@@ -259,7 +293,7 @@ function paint(p: { w: number; h: number; shapes: Shape[] }, scale: number, with
 // ---------------------------------------------------------------- drawing
 
 const TERM_SCALE = 0.62
-const TERM_W = 16
+const TERM_W = 24
 const TERM_ROWS = 16 // pixel rows, two per text row
 
 const TERM = {
@@ -340,7 +374,7 @@ export const panda: Character = {
     const p = pose(s)
     // A sprite pose is drawn at whatever pixel size makes it as tall as the
     // sitting pose was; the shape poses keep PX
-    const px = 'sprite' in p ? (SIT_HEIGHT * PX) / p.h : PX
+    const px = 'sprite' in p ? (SIT_HEIGHT * PX) / SIT_H : PX
     const sp = mirror(render(p, 'sprite' in p ? 1 : DESK_SCALE, true), s.dir)
     const w = cols * CELL
     const size = (sp[0]?.length ?? 0) * px

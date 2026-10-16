@@ -45,4 +45,4 @@ Characters live in `hooks/dino.ts` and `hooks/panda.ts`; the engine is `hooks/re
 
 ## Art
 
-The sitting panda is pixel art in `art/sit.png` (30 × 33, facing right), turned into the `SIT` rows in `hooks/panda.ts`. Blinking, sunglasses, chewing and the bamboo are drawn over it in code. The walking and sleeping poses are still built from shapes.
+The panda's sitting and walking poses are pixel art in `art/` (facing right): `sit.png` (30 × 33) and `walk-1.png`, `walk-2.png` (50 × 22). They're read into `hooks/panda.ts` as the `SIT` and `WALK` rows. Blinking, sunglasses, chewing and the bamboo are drawn over the sitting pose in code. The sleeping pose is still built from shapes.
