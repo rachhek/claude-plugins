@@ -141,3 +141,83 @@ export function shadowSvg(s: Scene, ox: number, size: number, groundY: number, p
 
 export const svgOpen = (w: number, h: number) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges">`
+
+// ---------------------------------------------------------------- smooth shrinking
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  // Snap to 16 levels per channel so neighbouring cells share colours and merge
+  const q = (v: number) => Math.min(255, Math.max(0, Math.round(v / 17) * 17))
+  return '#' + [q(r), q(g), q(b)].map(v => v.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Shrink (or grow) a sprite to `outW` by `outH` pixels, blending the colours
+ * each output pixel covers, so edges come out smooth instead of jagged. A
+ * pixel that is mostly transparent stays transparent (null).
+ */
+export function smoothResize(sprite: string[], colours: Record<string, string>, outW: number, outH: number): (string | null)[][] {
+  const H = sprite.length
+  const W = sprite[0]?.length ?? 0
+  const rgb = new Map<string, [number, number, number]>()
+  for (const [k, v] of Object.entries(colours)) rgb.set(k, hexToRgb(v))
+  const out: (string | null)[][] = []
+  for (let y = 0; y < outH; y++) {
+    const row: (string | null)[] = []
+    const sy0 = (y * H) / outH
+    const sy1 = ((y + 1) * H) / outH
+    for (let x = 0; x < outW; x++) {
+      const sx0 = (x * W) / outW
+      const sx1 = ((x + 1) * W) / outW
+      let r = 0
+      let g = 0
+      let b = 0
+      let opaque = 0
+      let total = 0
+      for (let sy = Math.floor(sy0); sy < Math.ceil(sy1); sy++) {
+        const wy = Math.min(sy + 1, sy1) - Math.max(sy, sy0)
+        for (let sx = Math.floor(sx0); sx < Math.ceil(sx1); sx++) {
+          const wx = Math.min(sx + 1, sx1) - Math.max(sx, sx0)
+          const w = wx * wy
+          total += w
+          const c = rgb.get(sprite[sy]?.[sx] ?? '.')
+          if (!c) continue
+          opaque += w
+          r += c[0] * w
+          g += c[1] * w
+          b += c[2] * w
+        }
+      }
+      row.push(opaque / total < 0.5 ? null : rgbToHex(r / opaque, g / opaque, b / opaque))
+    }
+    out.push(row)
+  }
+  return out
+}
+
+/** Build half-block cells from a grid of pixel colours, placed `top` rows down in a canvas */
+export function halfBlocksFromPixels(px: (string | null)[][], top: number, width: number, pixelRows: number): Cell[][] {
+  const at = (r: number, c: number): string => {
+    const sr = r - top
+    return sr >= 0 && sr < px.length ? (px[sr]?.[c] ?? '') : ''
+  }
+  const rows: Cell[][] = []
+  for (let k = 0; k < pixelRows / 2; k++) {
+    const row: Cell[] = []
+    for (let c = 0; c < width; c++) {
+      const t = at(2 * k, c)
+      const b = at(2 * k + 1, c)
+      if (!t && !b) row.push({ ch: ' ' })
+      else if (t && !b) row.push({ ch: '▀', fg: t })
+      else if (!t && b) row.push({ ch: '▄', fg: b })
+      else if (t === b) row.push({ ch: '█', fg: t })
+      else row.push({ ch: '▀', fg: t, bg: b })
+    }
+    rows.push(row)
+  }
+  return rows
+}

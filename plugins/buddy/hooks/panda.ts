@@ -1,5 +1,5 @@
 import type { Scene } from '../types'
-import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, svgOpen } from './shared'
+import { bubbleSvg, halfBlocksFromPixels, mirror, outline, pick, pixels, put, shadowSvg, smoothResize, svgOpen } from './shared'
 import type { Character } from './shared'
 
 // The panda, in three chunky poses: sitting up (idle, munching, shades on,
@@ -293,7 +293,7 @@ function paint(p: { w: number; h: number; shapes: Shape[] }, scale: number, with
 // ---------------------------------------------------------------- drawing
 
 const TERM_W = 36 // columns the terminal strip may take
-const TERM_MAX_ROWS = 24 // pixel rows at most, two per text row
+const TERM_MAX_ROWS = 34 // pixel rows at most, two per text row: the art at full size
 
 const TERM = {
   E: '#1e2026',
@@ -362,11 +362,13 @@ export const panda: Character = {
     // sets the scale, so the other poses come out in proportion to it
     const pixelRows = Math.max(8, Math.min(TERM_MAX_ROWS, rows - (rows % 2)))
     const scale = Math.min(pixelRows / SIT_H, TERM_W / p.w, pixelRows / p.h)
-    const sp = mirror(render(p, scale, false), s.dir)
+    // Draw at full detail, then shrink with colour blending so edges stay smooth
+    const native = 'sprite' in p ? p.sprite : paint(p, 2, false)
+    const px = smoothResize(mirror(native, s.dir), TERM, Math.round(p.w * scale), Math.round(p.h * scale))
     // Feet on the bottom row, lifted while jumping as far as the band allows
-    const lift = Math.min(s.air, pixelRows - sp.length)
+    const lift = Math.min(s.air, pixelRows - px.length)
     return {
-      rows: halfBlocks(sp, pixelRows - sp.length - lift, TERM_W, pixelRows, TERM),
+      rows: halfBlocksFromPixels(px, pixelRows - px.length - lift, TERM_W, pixelRows),
       ground,
       groundColor: 'green',
     }

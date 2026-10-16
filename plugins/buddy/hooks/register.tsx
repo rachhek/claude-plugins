@@ -36,6 +36,10 @@ const isHidden = atom({ plugin: 'buddy', key: 'isHidden' } as const, false)
 
 // The physics lives in module variables and is copied into $.state on each tick
 let kind: Kind = 'dino'
+// How tall the buddy may be in the terminal, in pixel rows (two per text row)
+const SIZE_ROWS = { small: 16, medium: 24, large: 34 } as const
+type Size = keyof typeof SIZE_ROWS
+let size: Size = 'medium'
 let x = INITIAL.x
 let dir: 1 | -1 = 1
 let ground = 0
@@ -158,6 +162,8 @@ async function loadSaved($: EngineInterface) {
   await update($, kindAtom, () => kind)
   const savedHidden = await $.store.get('isHidden')
   await update($, isHidden, () => savedHidden === true)
+  const savedSize = await $.store.get('size')
+  if (savedSize === 'small' || savedSize === 'medium' || savedSize === 'large') size = savedSize
 }
 
 async function choose($: EngineInterface, next: Kind) {
@@ -177,7 +183,7 @@ async function setHidden($: EngineInterface, hide: boolean) {
 // ---------------------------------------------------------------- hooks
 
 const PERSON_ORIGINS = new Set(['composer', 'bridge', 'sdk', 'unclassified'])
-const USAGE = 'Usage: /buddy [dino | panda | on | off | jump | snack]'
+const USAGE = 'Usage: /buddy [dino | panda | on | off | jump | snack | size small|medium|large]'
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -195,7 +201,7 @@ export const register: Register = on => {
       await $.command.register({
         name: 'buddy',
         description: 'Pick your buddy (dino or panda), or show, hide or poke it',
-        argumentHint: '[dino | panda | on | off | jump | snack]',
+        argumentHint: '[dino | panda | on | off | jump | snack | size <small|medium|large>]',
         immediate: true,
       })
     } catch {
@@ -239,6 +245,16 @@ export const register: Register = on => {
       pauseTicks = 80
       say(pick(me().lines.snack))
       return {}
+    }
+    if (arg.startsWith('size')) {
+      const want = arg.slice(4).trim()
+      if (want !== 'small' && want !== 'medium' && want !== 'large') {
+        return { text: `Buddy size is ${size}. Usage: /buddy size small|medium|large (large shows the art pixel for pixel in the terminal, and needs a taller window)` }
+      }
+      size = want
+      await $.store.set('size', want)
+      $.ui.invalidate('ui.render')
+      return { text: `Buddy size: ${want}.` }
     }
     if (arg !== '') return { text: USAGE }
 
@@ -316,8 +332,9 @@ export const register: Register = on => {
       ours = <Svg source={who.svg(at, cols)} alt={s.bubble ? `Your buddy says: ${s.bubble}` : 'Your buddy'} />
     } else {
       const { Box, Text } = $.ui.resolve(e)
-      // Pixel rows the buddy may use: the band's rows less one for the ground
-      const rows = Math.max(8, (e.props.maxRows - 1) * 2)
+      // Pixel rows the buddy may use: the chosen size, within the band's rows
+      // less one for the ground
+      const rows = Math.max(8, Math.min(SIZE_ROWS[size], (e.props.maxRows - 1) * 2))
       const drawing = who.terminal(at, cols, rows)
       const lines = drawing.rows.map((row, i) => {
         const sprite = runs(row).map((run, j) =>

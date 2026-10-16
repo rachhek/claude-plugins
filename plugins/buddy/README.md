@@ -21,6 +21,8 @@ claude plugin marketplace add rachhek/claude-plugins
 claude plugin install buddy@rachhek
 ```
 
+To remove it: `claude plugin uninstall buddy@rachhek`.
+
 Then run `/reload-plugins` in an open session, or start a new one.
 
 ## Commands
@@ -32,6 +34,7 @@ Then run `/reload-plugins` in an open session, or start a new one.
 | `/buddy off`, `/buddy on` | Hide or show it |
 | `/buddy jump` | Make it jump |
 | `/buddy snack` | Give the panda some bamboo |
+| `/buddy size small\|medium\|large` | How tall it is in the terminal; `large` shows the art pixel for pixel and needs a taller window |
 
 ## Develop
 
