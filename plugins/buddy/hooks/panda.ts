@@ -28,20 +28,22 @@ const furBall = (cx: number, cy: number, rx: number, ry: number): Shape[] => [
 ]
 
 function sitting(s: Scene): Pose {
-  // Three-quarter view, turned towards where it faces: a white hip behind,
-  // a big round belly, and the near arm hanging down over it
+  // Three-quarter view, head and body both turned towards where it faces:
+  // the belly bulges that way, with the arm and white hip behind it
   const shapes: Shape[] = [
-    ...furBall(6.4, 17.6, 4.4, 4.4),
-    ell('K', 5.2, 21, 3.2, 2.4),
-    ...furBall(11.4, 17, 7.2, 6.2),
-    // Far arm peeking out, the shoulder band, and the near arm
-    ell('K', 5.6, 13.8, 1.8, 2.6),
+    // Behind, on the side it faces away from: the white hip and back leg
+    ...furBall(5.6, 17.4, 4.2, 4.4),
+    ell('K', 7, 21.2, 3.6, 2.4),
+    // The big belly, bulging towards the side it faces
+    ...furBall(13.2, 17, 7, 6.2),
+    // The black arm along the back of the belly, and the shoulder band
+    ell('K', 8.2, 15, 3.2, 5.2),
+    ell('k', 7.6, 13.2, 0.9, 2),
     ell('K', 12.6, 11.4, 7.6, 2),
-    ell('K', 16.6, 15, 3.4, 5.2),
-    ell('k', 15.8, 13.2, 0.9, 2),
-    // The near foot planted in front, with its pad
-    ell('K', 15.4, 21, 4.4, 2.8),
-    ell('k', 16, 21.4, 2, 1.2),
+    // A small paw on the facing side, and the front foot planted in front
+    ...(s.isMunching ? [] : [ell('K', 19.6, 16.4, 1.7, 2.6)]),
+    ell('K', 16.8, 21.2, 3.9, 2.6),
+    ell('k', 17.4, 21.5, 1.3, 0.8),
     // Ears: the far one smaller
     ell('K', 6.8, 3.4, 2.2, 2.2),
     ell('K', 19, 3.2, 2.6, 2.5),
