@@ -159,6 +159,27 @@ function pose(s: Scene): Pose {
 // ---------------------------------------------------------------- drawing
 
 const TERM_W = 36 // columns the terminal strip may take
+// The hd picture's canvas: wide enough for the walking pose, tall enough for
+// the sitting one plus the highest jump
+const CANVAS_W = 50
+const CANVAS_H = SIT_H + 4
+
+function onCanvas(sprite: string[], air: number): string[] {
+  const h = sprite.length
+  const w = sprite[0]?.length ?? 0
+  const left = Math.floor((CANVAS_W - w) / 2)
+  const top = CANVAS_H - h - Math.min(air, CANVAS_H - h)
+  const rows: string[] = []
+  for (let r = 0; r < CANVAS_H; r++) {
+    const src = sprite[r - top]
+    if (src === undefined) {
+      rows.push('.'.repeat(CANVAS_W))
+    } else {
+      rows.push('.'.repeat(left) + src + '.'.repeat(CANVAS_W - left - w))
+    }
+  }
+  return rows
+}
 const TERM_MAX_ROWS = 34 // pixel rows at most, two per text row: the art at full size
 
 const TERM = {
@@ -229,17 +250,19 @@ export const panda: Character = {
     // Draw at full detail, then shrink with colour blending so edges stay smooth
     const native = p.sprite
     if (hd) {
-      // A real picture: the art at full detail, in a box of cells sized so a
-      // text row holds the same share of the panda as in half-block mode
+      // A real picture. Every pose is drawn onto the same canvas, feet on the
+      // bottom row, so the picture keeps one size while it changes pose or
+      // jumps; the box of cells holds the canvas at the band's height
       // (a cell is about half as wide as it is tall)
-      const textRows = Math.max(2, Math.round((p.h / SIT_H) * (pixelRows / 2)))
-      const columns = Math.max(2, Math.round((p.w / SIT_H) * pixelRows))
+      const canvas = onCanvas(mirror(native, s.dir), s.air)
+      const textRows = Math.max(2, Math.round((CANVAS_H / SIT_H) * (pixelRows / 2)))
+      const columns = Math.max(2, Math.round((CANVAS_W / SIT_H) * pixelRows))
       const factor = 6
       return {
         rows: [],
         ground,
         groundColor: 'green',
-        image: { ...spriteToRgba(mirror(native, s.dir), TERM, factor), columns, rows: textRows },
+        image: { ...spriteToRgba(canvas, TERM, factor), columns, rows: textRows },
       }
     }
     const scale = Math.min(pixelRows / SIT_H, TERM_W / p.w, pixelRows / p.h)

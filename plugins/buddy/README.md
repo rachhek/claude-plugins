@@ -34,7 +34,6 @@ Then run `/reload-plugins` in an open session, or start a new one.
 | `/buddy off`, `/buddy on` | Hide or show it |
 | `/buddy jump` | Make it jump |
 | `/buddy snack` | Give the panda some bamboo |
-| `/buddy size small\|medium\|large` | How tall it is in the terminal; `large` shows the art pixel for pixel and needs a taller window |
 | `/buddy hd on\|off\|auto` | Draw a real picture instead of text blocks in terminals that can show images (Ghostty, kitty, WezTerm). `auto` (the default) turns it on when it detects one of those |
 
 ## Develop
