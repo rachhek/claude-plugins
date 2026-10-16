@@ -28,48 +28,53 @@ const furBall = (cx: number, cy: number, rx: number, ry: number): Shape[] => [
 ]
 
 function sitting(s: Scene): Pose {
+  // Three-quarter view, turned towards where it faces: a white hip behind,
+  // a big round belly, and the near arm hanging down over it
   const shapes: Shape[] = [
-    ...furBall(12, 16, 6.6, 5.8),
-    // The black band over the shoulders, then arms and legs tucked in close
-    ell('K', 12, 12, 6.6, 2),
-    ell('K', 7.4, 15.2, 2, 3.4),
-    ...(s.isMunching ? [] : [ell('K', 16.6, 15.2, 2, 3.4)]),
-    ell('K', 8.2, 20.3, 2.9, 1.8),
-    ell('K', 15.8, 20.3, 2.9, 1.8),
-    ell('k', 8.2, 20.5, 1.3, 0.8),
-    ell('k', 15.8, 20.5, 1.3, 0.8),
-    // Round ears, set in from the corners
-    ell('K', 6.2, 3.6, 2.4, 2.4),
-    ell('K', 17.8, 3.6, 2.4, 2.4),
-    // A sheen on the black fur
-    ell('k', 5.6, 3, 1, 1),
-    ell('k', 17.2, 3, 1, 1),
-    ell('k', 7, 14, 0.7, 1.6),
-    ...(s.isMunching ? [] : [ell('k', 16.2, 14, 0.7, 1.6)]),
-    ...furBall(12, 8.4, 8.4, 6.4),
-    // Eye patches
-    ell('P', 8.5, 8.8, 2.2, 2.7),
-    ell('P', 15.5, 8.8, 2.2, 2.7),
-    px('N', [11, 11], [12, 11]),
+    ...furBall(6.4, 17.6, 4.4, 4.4),
+    ell('K', 5.2, 21, 3.2, 2.4),
+    ...furBall(11.4, 17, 7.2, 6.2),
+    // Far arm peeking out, the shoulder band, and the near arm
+    ell('K', 5.6, 13.8, 1.8, 2.6),
+    ell('K', 12.6, 11.4, 7.6, 2),
+    ell('K', 16.6, 15, 3.4, 5.2),
+    ell('k', 15.8, 13.2, 0.9, 2),
+    // The near foot planted in front, with its pad
+    ell('K', 15.4, 21, 4.4, 2.8),
+    ell('k', 16, 21.4, 2, 1.2),
+    // Ears: the far one smaller
+    ell('K', 6.8, 3.4, 2.2, 2.2),
+    ell('K', 19, 3.2, 2.6, 2.5),
+    ell('k', 18.3, 2.6, 0.9, 0.9),
+    ...furBall(13.4, 8.2, 8.6, 6.6),
+    // Droopy grey eye patches; the far one narrower, as it's turned away
+    ell('P', 10, 8.4, 1.9, 2.5),
+    ell('P', 9.5, 9.6, 1.7, 1.8),
+    ell('P', 17, 8.2, 2.4, 2.6),
+    ell('P', 17.7, 9.5, 2.2, 2.1),
+    // A little triangle nose and a tiny mouth, towards the near side
+    rect('N', 13.2, 11.2, 2.2, 0.7),
+    rect('N', 13.7, 11.9, 1.2, 0.6),
+    rect('N', 13.5, 13, 1.6, 0.4),
   ]
-  if (s.isAsleep || s.isBlinking) shapes.push(rect('L', 7.3, 9, 2.6, 0.6), rect('L', 14.3, 9, 2.6, 0.6))
+  if (s.isAsleep || s.isBlinking) shapes.push(rect('L', 8.4, 8.8, 3, 0.6), rect('L', 15.2, 8.8, 3.6, 0.6))
   else if (s.isHappy) {
     // Shades on
-    shapes.push(rect('B', 5, 7, 6, 3), rect('B', 13, 7, 6, 3), rect('B', 11, 7, 2, 1), rect('B', 4, 7, 1, 1), rect('B', 19, 7, 1, 1))
-    shapes.push(px('w', [6, 7], [14, 7]))
+    shapes.push(rect('B', 7.6, 7, 4.4, 3), rect('B', 14.6, 7, 5.2, 3), rect('B', 12, 7, 2.6, 1), rect('B', 19.8, 7, 1.6, 1))
+    shapes.push(px('w', [8.4, 7.4], [15.6, 7.4]))
   } else {
-    // Dark eyes looking the way it faces, each with a glint
-    shapes.push(ell('E', 8.9, 9, 1.15, 1.35), ell('E', 15.9, 9, 1.15, 1.35))
-    shapes.push(px('w', [8.6, 8.3], [15.6, 8.3]))
+    // Dark eyes, each with a glint
+    shapes.push(ell('E', 10.4, 8.8, 0.95, 1.3), ell('E', 17.4, 8.6, 1.2, 1.4))
+    shapes.push(px('w', [10.1, 8.1], [17, 7.9]))
   }
-  if (s.chew) shapes.push(px('R', [11, 12], [12, 12]))
+  if (s.chew) shapes.push(rect('R', 13.6, 12.8, 1.4, 0.8))
   if (s.isMunching) {
-    // A stalk of bamboo held in its paw, leaves at the top
-    shapes.push(rect('G', 18, 2, 2, 19), px('g', [18, 7], [19, 13]))
-    shapes.push(ell('g', 21.2, 2.6, 2.6, 1), ell('g', 16.4, 3.6, 2.2, 0.9))
-    shapes.push(ell('K', 17, 13.2, 2.6, 2.3))
+    // A stalk of bamboo held up in the near paw, leaves at the top
+    shapes.push(rect('G', 19.4, 2, 2, 20), px('g', [19.4, 7], [20.4, 14]))
+    shapes.push(ell('g', 22.4, 2.6, 2, 1), ell('g', 18, 3.4, 2, 0.9))
+    shapes.push(ell('K', 18.6, 13.4, 2.6, 2.2), ell('k', 18, 12.8, 0.8, 0.7))
   }
-  return { w: 24, h: 22, shapes }
+  return { w: 24, h: 24, shapes }
 }
 
 function walking(s: Scene): Pose {
@@ -183,12 +188,12 @@ const TERM_W = 16
 const TERM_ROWS = 16 // pixel rows, two per text row
 
 const TERM = {
-  K: '#4a4a4a',
-  k: '#5a5a5a',
-  P: '#4a4a4a',
-  E: '#262626',
-  W: '#f4f4f2',
-  S: '#c9c6bf',
+  K: '#50545c',
+  k: '#62666f',
+  P: '#6a6e78',
+  E: '#1e1e1e',
+  W: '#f3efe4',
+  S: '#cfc9bb',
   w: '#ffffff',
   N: '#2a2a2a',
   L: '#9a9a9a',
@@ -199,17 +204,17 @@ const TERM = {
 }
 
 const SVG = {
-  O: '#1b1819',
-  K: '#262224',
-  k: '#433d40',
-  P: '#3b3639',
-  E: '#0c0a0b',
-  W: '#f8f5ee',
-  S: '#d8d1c5',
+  O: '#16171b',
+  K: '#33363d',
+  k: '#4b4f58',
+  P: '#585c66',
+  E: '#0e0f12',
+  W: '#f4f0e5',
+  S: '#d7d0c1',
   w: '#ffffff',
-  N: '#1b1819',
-  L: '#8f8689',
-  B: '#0f0d0e',
+  N: '#16171b',
+  L: '#2a2c31',
+  B: '#0e0f12',
   R: '#9c3f52',
   G: '#5fae45',
   g: '#93d07a',
@@ -222,7 +227,7 @@ const PX = 2.5 // ...with smaller pixels, so the panda keeps its size
 const UNIT = 4 // grass, shadow and speech bubble keep chunkier pixels
 const CELL = 8
 const LIFT = 5
-const TALLEST = Math.ceil(22 * DESK_SCALE) + 2 // the sitting pose, with its outline
+const TALLEST = Math.ceil(24 * DESK_SCALE) + 2 // the sitting pose, with its outline
 
 function react(text: string): string {
   const t = text.toLowerCase()
