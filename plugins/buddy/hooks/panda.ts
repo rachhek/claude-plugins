@@ -1,5 +1,5 @@
 import type { Scene } from '../types'
-import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, shadowSvg, svgOpen } from './shared'
+import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, svgOpen } from './shared'
 import type { Character } from './shared'
 
 // The panda, in three chunky poses: sitting up (idle, munching, shades on,
@@ -15,7 +15,7 @@ type Shape =
   | { c: string; r: [x: number, y: number, w: number, h: number] }
   | { c: string; p: [x: number, y: number][] }
 
-type Pose = { w: number; h: number; shapes: Shape[] }
+type Pose = { w: number; h: number; shapes: Shape[] } | { w: number; h: number; sprite: string[] }
 
 const ell = (c: string, cx: number, cy: number, rx: number, ry: number): Shape => ({ c, e: [cx, cy, rx, ry] })
 const rect = (c: string, x: number, y: number, w: number, h: number): Shape => ({ c, r: [x, y, w, h] })
@@ -27,78 +27,86 @@ const furBall = (cx: number, cy: number, rx: number, ry: number): Shape[] => [
   ell('W', cx - rx * 0.08, cy - ry * 0.1, rx * 0.92, ry * 0.9),
 ]
 
+// The sitting panda is hand-drawn pixel art (art/sit.png), facing right.
+// E outline and eyes, K dark fur, k lighter dark fur, W white fur, S shaded white fur
+const SIT = [
+  '.....EEEE..........EEE........',
+  '....EEKkkE.EEEEEE.EEkkKE......',
+  '...EEkEEkkEWWWWWWkkEkkkE......',
+  '...EEEEEkEWWWWWWWWWWEkkE......',
+  '...EEEEEESWWWWWWWWWWWEE.......',
+  '....EEEESWWWWWWWWWWWWWE.......',
+  '.....EESSWWWWWWWWWWWWWEE......',
+  '.....ESSWWWkkkWWWWWkkWWE......',
+  '....EESSWWkkkkkWWWWkkkWWE.....',
+  '....ESSWWkkkEEkWWWWkEkkWE.....',
+  '....ESSWWkkkEEkWWWWkEkkWE.....',
+  '....ESSWWkkkkkWWWWWWkkkWE.....',
+  '....ESSSWWkkkWWWEEEEWkWWE.....',
+  '....EKSSWWWWWWWWWEEEWWWWE.....',
+  '...EEKSSSWWWWWWWWWEWWWWE......',
+  '...EEKKSSSWWWWWEEEEEWWSE......',
+  '..EEKKKKKSSWWWWWWWWWWSE.......',
+  '..EKKKKKKKSSSSSSSSSSEEE.......',
+  '.EEEEKKKKKEkkkkkkkkkEKKE......',
+  '.ESSEKKKKKKEkkkkkkkkkEKKE.....',
+  '.ESSSEKKKKKEEWWWWWWWWEKKE.....',
+  'EESSSEKKKKKKKEWWWWWWWWEKKE....',
+  'ESSWSSEKKKKKKKEWWWWWWWEKKE....',
+  'ESSWWSEKKKKKKKKEWWWWWWWEKE....',
+  'ESSWWWWEEEEEEKKEWWWWWWWEEEEEE.',
+  'ESSWWWEkkkkkkEEWWWWWWWWEEkkkkE',
+  'ESSSWEKKkkkkkkEWWWWWWWSEkkkkkE',
+  'ESSSEKKKkkKKKkEWWWWWWWSEkkkkkE',
+  'EESSEKKKkkKKKkEWWWWWWSEKkkkkkE',
+  '.ESSEKKKKkKKKkEWWWWWSSEKkkkkE.',
+  '..ESEKKKKkKKKkESSSSSSEEKKkkkE.',
+  '..EEEEEKKKkkkEESSSSSEEEKKKKE..',
+  '.....EEEEEEEEEEEEEEEEEEEEEE...',
+]
+const SIT_W = SIT[0]?.length ?? 0
+const SIT_H = SIT.length
+
 function sitting(s: Scene): Pose {
-  // Three-quarter view, turned towards where it faces (drawn facing right).
-  // A pear-shaped silhouette, wider at the bottom than the head: dark fur
-  // with a collar across the chest, an arm running down the middle, a white
-  // belly on the facing side and a white hip on the back edge
-  // The big front foot bulging out on the facing side, outlined against the body
-  const frontFoot = [ell('O', 21.6, 24.4, 3.6, 3.7), ell('K', 21.6, 24.4, 3, 3.2), ell('k', 21.2, 23.6, 1.2, 1)]
-  const shapes: Shape[] = [
-    // Dark body
-    ell('K', 13, 21.4, 10.6, 7.2),
-    // The white hip on the back edge, with the back foot under it
-    ell('S', 4.8, 21.6, 2.3, 4.3),
-    ell('W', 4.7, 21.2, 2, 3.9),
-    ell('K', 5.6, 26.3, 2.4, 1.6),
-    // The white belly on the facing side
-    ...furBall(16, 21.9, 5, 5.7),
-    // The arm's sheen, and the leg block in the middle with a lighter pad
-    // The arm, its own outlined shape, running from the shoulder down to the
-    // hand resting against the hip
-    ell('O', 7.6, 16.8, 3, 2.8),
-    ell('O', 9, 19.1, 3, 2.8),
-    ell('O', 10.2, 21.3, 2.9, 2.5),
-    ell('K', 7.6, 16.8, 2.4, 2.2),
-    ell('K', 9, 19.1, 2.4, 2.2),
-    ell('K', 10.2, 21.3, 2.3, 1.9),
-    // The leg block in the middle, outlined against the body, with a pad
-    ell('O', 11.2, 24.3, 3.5, 3.8),
-    ell('K', 11.2, 24.3, 2.9, 3.3),
-    ell('k', 11.2, 24.7, 1.3, 1.8),
-    // The big front foot, bulging out on the facing side
-    ...(s.isMunching ? [] : frontFoot),
-    // The collar across the chest, under the head
-    // A broad neck: the collar as wide as the head, its sides running
-    // straight down into the body
-    ell('K', 12.8, 15.8, 8.4, 2.6),
-    rect('K', 5, 14.6, 15.6, 3.2),
-    // Ears at the top corners of the head
-    ell('K', 6.6, 2.6, 2.4, 2.2),
-    ell('K', 18.8, 2.4, 2.2, 2.1),
-    ell('k', 6, 2, 0.8, 0.7),
-    // A round head, a bit narrower than the body
-    ...furBall(12.8, 8.2, 8.2, 6.8),
-    // Eye patches, close together
-    ell('P', 10.4, 8.4, 2.3, 2.4),
-    ell('P', 16.4, 8.3, 2.4, 2.5),
-    // A small triangle nose under the gap between the eyes, a short stroke
-    // and a straight mouth line: calm and content
-    rect('N', 12.3, 10.8, 3, 0.7),
-    rect('N', 12.9, 11.5, 1.8, 0.6),
-    rect('N', 13.5, 12.1, 0.6, 0.7),
-    rect('N', 12.5, 12.8, 2.6, 0.6),
-  ]
-  if (s.isAsleep || s.isBlinking) shapes.push(rect('L', 9, 8.8, 2.8, 0.6), rect('L', 15, 8.8, 2.8, 0.6))
-  else if (s.isHappy) {
-    // Shades on
-    shapes.push(rect('B', 7.8, 6.8, 5, 3.4), rect('B', 13.8, 6.8, 5.2, 3.4), rect('B', 12.8, 7.2, 1, 0.8))
-    shapes.push(rect('B', 6, 7.2, 1.8, 0.8), rect('B', 19, 7.2, 1.6, 0.8))
-    shapes.push(rect('w', 8.6, 7.4, 0.6, 0.6), rect('w', 14.6, 7.4, 0.6, 0.6))
-  } else {
-    // Big soft pupils, each with a tiny glint
-    shapes.push(rect('E', 10.2, 7.6, 1.9, 2.2), rect('E', 16.4, 7.5, 2, 2.3))
-    shapes.push(rect('w', 10.3, 7.7, 0.6, 0.6), rect('w', 16.5, 7.6, 0.6, 0.6))
+  const rows = [...SIT]
+  const set = (r: number, c0: number, c1: number, ch: string) => {
+    for (let c = c0; c <= c1; c++) put(rows, r, c, ch)
   }
-  if (s.chew) shapes.push(rect('R', 13.1, 12.8, 1.2, 0.7))
+  if (s.isAsleep || s.isBlinking) {
+    // Pupils gone, a lighter line across each patch
+    set(9, 12, 13, 'k')
+    set(10, 12, 13, 'k')
+    set(9, 20, 20, 'k')
+    set(10, 20, 20, 'k')
+    set(10, 10, 13, 'L')
+    set(10, 19, 22, 'L')
+  } else if (s.isHappy) {
+    // Shades on: two lenses, a bridge, and arms out to the ears
+    for (let r = 8; r <= 10; r++) {
+      set(r, 8, 14, 'B')
+      set(r, 17, 22, 'B')
+    }
+    set(9, 15, 16, 'B')
+    set(9, 6, 7, 'B')
+    put(rows, 9, 23, 'B')
+    put(rows, 8, 9, 'w')
+    put(rows, 8, 18, 'w')
+  }
+  if (s.chew) set(16, 16, 18, 'R')
   if (s.isMunching) {
-    // A stalk of bamboo held up in front, leaves at the top
-    shapes.push(rect('G', 21, 5, 1.8, 22), px('g', [21, 10], [21.8, 18]))
-    shapes.push(ell('g', 23.6, 5.4, 2, 0.9), ell('g', 19.6, 6.2, 1.8, 0.8))
-    shapes.push(ell('K', 21, 17.4, 2.6, 2.2), ell('k', 20.4, 16.8, 0.8, 0.6))
-    shapes.push(...frontFoot)
+    // A stalk of bamboo held up in the near paw, leaves at the top
+    for (let r = 5; r <= 23; r++) set(r, 24, 25, 'G')
+    put(rows, 10, 24, 'g')
+    put(rows, 17, 25, 'g')
+    set(4, 26, 28, 'g')
+    set(5, 21, 23, 'g')
+    set(18, 22, 26, 'E')
+    set(19, 22, 26, 'K')
+    set(20, 22, 26, 'K')
+    set(21, 22, 26, 'K')
+    set(22, 22, 26, 'E')
   }
-  return { w: 26, h: 28, shapes }
+  return { w: SIT_W, h: SIT_H, sprite: rows }
 }
 
 function walking(s: Scene): Pose {
@@ -160,8 +168,51 @@ function pose(s: Scene): Pose {
   return sitting(s)
 }
 
+// Scale a sprite to another size: nearest neighbour when growing, a majority
+// vote over the covered cells when shrinking, so thin lines don't vanish
+function scaleSprite(sprite: string[], scale: number): string[] {
+  const H = sprite.length
+  const W = sprite[0]?.length ?? 0
+  const outH = Math.max(1, Math.round(H * scale))
+  const outW = Math.max(1, Math.round(W * scale))
+  const out: string[] = []
+  for (let y = 0; y < outH; y++) {
+    let line = ''
+    const y0 = Math.floor((y * H) / outH)
+    const y1 = Math.max(y0 + 1, Math.floor(((y + 1) * H) / outH))
+    for (let x = 0; x < outW; x++) {
+      const x0 = Math.floor((x * W) / outW)
+      const x1 = Math.max(x0 + 1, Math.floor(((x + 1) * W) / outW))
+      const votes = new Map<string, number>()
+      for (let yy = y0; yy < y1; yy++)
+        for (let xx = x0; xx < x1; xx++) {
+          const ch = sprite[yy]?.[xx] ?? '.'
+          votes.set(ch, (votes.get(ch) ?? 0) + 1)
+        }
+      let best = '.'
+      let bestN = -1
+      for (const [ch, n] of votes) {
+        // Prefer a coloured cell over a transparent one on a tie
+        if (n > bestN || (n === bestN && best === '.')) {
+          best = ch
+          bestN = n
+        }
+      }
+      line += best
+    }
+    out.push(line)
+  }
+  return out
+}
+
+// Turn a pose into rows of pixels at the given scale
+function render(p: Pose, scale: number, withOutline: boolean): string[] {
+  if ('sprite' in p) return scaleSprite(p.sprite, scale)
+  return paint(p, scale, withOutline)
+}
+
 // Paint the shapes onto a grid, scaled, and optionally ring it with outline
-function paint(p: Pose, scale: number, withOutline: boolean): string[] {
+function paint(p: { w: number; h: number; shapes: Shape[] }, scale: number, withOutline: boolean): string[] {
   const W = Math.ceil(p.w * scale)
   const H = Math.ceil(p.h * scale)
   const grid = Array.from({ length: H }, () => Array<string>(W).fill('.'))
@@ -212,33 +263,33 @@ const TERM_W = 16
 const TERM_ROWS = 16 // pixel rows, two per text row
 
 const TERM = {
-  K: '#50545c',
-  k: '#62666f',
-  P: '#6a6e78',
-  E: '#1e1e1e',
-  W: '#f3efe4',
-  S: '#cfc9bb',
+  E: '#1e2026',
+  K: '#3c4452',
+  k: '#505866',
+  P: '#505866',
+  W: '#f0eade',
+  S: '#bdb5ad',
   w: '#ffffff',
-  N: '#2a2a2a',
-  L: '#9a9a9a',
-  B: '#1c1c1c',
+  N: '#1e2026',
+  L: '#9aa0a8',
+  B: '#101216',
   R: '#a04a5a',
   G: '#7bc96f',
   g: '#a5dc8f',
 }
 
 const SVG = {
-  O: '#16171b',
-  K: '#33363d',
-  k: '#4b4f58',
-  P: '#585c66',
-  E: '#0e0f12',
-  W: '#f4f0e5',
-  S: '#d7d0c1',
+  O: '#0b0c10',
+  E: '#0b0c10',
+  K: '#2b3340',
+  k: '#3f4753',
+  P: '#3f4753',
+  W: '#f0eade',
+  S: '#c0b8b0',
   w: '#ffffff',
-  N: '#16171b',
-  L: '#2a2c31',
-  B: '#0e0f12',
+  N: '#0b0c10',
+  L: '#8a9099',
+  B: '#07080a',
   R: '#9c3f52',
   G: '#5fae45',
   g: '#93d07a',
@@ -251,7 +302,8 @@ const PX = 2.5 // ...with smaller pixels, so the panda keeps its size
 const UNIT = 4 // grass, shadow and speech bubble keep chunkier pixels
 const CELL = 8
 const LIFT = 5
-const TALLEST = Math.ceil(28 * DESK_SCALE) + 2 // the sitting pose, with its outline
+const SIT_HEIGHT = Math.ceil(28 * DESK_SCALE) // rows the sitting pose is drawn at
+const TALLEST = SIT_HEIGHT + 2 // with its outline
 
 function react(text: string): string {
   const t = text.toLowerCase()
@@ -274,7 +326,7 @@ export const panda: Character = {
     for (let i = 0; i < cols; i++) ground += GRASS[i % GRASS.length]
     const p = pose(s)
     // Scale down to the terminal, narrower still for a pose too wide to fit
-    const sp = mirror(paint(p, Math.min(TERM_SCALE, TERM_W / p.w, TERM_ROWS / p.h), false), s.dir)
+    const sp = mirror(render(p, Math.min(TERM_SCALE, TERM_W / p.w, TERM_ROWS / p.h), false), s.dir)
     // Feet on the bottom row, lifted while jumping as far as the band allows
     const lift = Math.min(s.air, TERM_ROWS - sp.length)
     return {
@@ -285,13 +337,17 @@ export const panda: Character = {
   },
 
   svg(s, cols) {
-    const sp = mirror(paint(pose(s), DESK_SCALE, true), s.dir)
+    const p = pose(s)
+    // A sprite pose is drawn at whatever pixel size makes it as tall as the
+    // sitting pose was; the shape poses keep PX
+    const px = 'sprite' in p ? (SIT_HEIGHT * PX) / p.h : PX
+    const sp = mirror(render(p, 'sprite' in p ? 1 : DESK_SCALE, true), s.dir)
     const w = cols * CELL
-    const size = (sp[0]?.length ?? 0) * PX
+    const size = (sp[0]?.length ?? 0) * px
     const groundY = TALLEST * PX + 4 * LIFT + 2 * UNIT
     const h = groundY + 3 * UNIT
     const ox = s.x * CELL
-    const oy = groundY - sp.length * PX + PX - s.air * LIFT
+    const oy = groundY - sp.length * px + px - s.air * LIFT
 
     const grass: string[] = []
     for (let i = 0; i < w; i += 9 * UNIT) {
@@ -308,8 +364,8 @@ export const panda: Character = {
       grass.join('') +
       shadowSvg(s, ox, size, groundY, UNIT) +
       // A faint light rim so the dark outline still reads on a dark background
-      outline(sp, ox, oy, PX, '#5d5658') +
-      pixels(sp, ox, oy, PX, SVG) +
+      outline(sp, ox, oy, px, '#5d5658') +
+      pixels(sp, ox, oy, px, SVG) +
       bubbleSvg(s, ox, oy, size, w, UNIT) +
       `</svg>`
     )

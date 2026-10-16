@@ -42,3 +42,7 @@ claude plugin test plugins/buddy
 ```
 
 Characters live in `hooks/dino.ts` and `hooks/panda.ts`; the engine is `hooks/register.tsx`.
+
+## Art
+
+The sitting panda is pixel art in `art/sit.png` (30 × 33, facing right), turned into the `SIT` rows in `hooks/panda.ts`. Blinking, sunglasses, chewing and the bamboo are drawn over it in code. The walking and sleeping poses are still built from shapes.
