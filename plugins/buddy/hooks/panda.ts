@@ -28,56 +28,72 @@ const furBall = (cx: number, cy: number, rx: number, ry: number): Shape[] => [
 ]
 
 function sitting(s: Scene): Pose {
-  // Three-quarter view, turned towards where it faces. One pear-shaped
-  // silhouette: dark fur wraps the shoulders, back and far arm, with a white
-  // belly on the facing side and a small white hip behind
+  // Three-quarter view, turned towards where it faces (drawn facing right).
+  // A pear-shaped silhouette, wider at the bottom than the head: dark fur
+  // with a collar across the chest, an arm running down the middle, a white
+  // belly on the facing side and a white hip on the back edge
+  // The big front foot bulging out on the facing side, outlined against the body
+  const frontFoot = [ell('O', 22.4, 24.2, 3.8, 3.9), ell('K', 22.4, 24.2, 3.2, 3.4), ell('k', 22, 23.4, 1.3, 1.1)]
   const shapes: Shape[] = [
-    // Dark body, then a sheen along the back
-    ell('K', 12, 18.2, 9, 7),
-    ell('k', 5.6, 15, 1, 2.6),
-    // The white hip, inside the silhouette at the back
-    ell('S', 4.6, 20.2, 2.3, 3.1),
-    ell('W', 4.4, 19.9, 2, 2.7),
-    // The white belly, towards the facing side
-    ...furBall(14.2, 18.8, 5.4, 5.4),
-    // Heavy feet: the back one, then the front one planted in front
-    ell('K', 6.4, 23.6, 3.4, 2.2),
-    ell('K', 16.6, 23.2, 4, 2.6),
-    ell('k', 16, 22.3, 1.6, 0.6),
-    // Ears, the far one a little smaller
-    ell('K', 6.2, 3.1, 2.3, 2.2),
-    ell('K', 18.8, 2.9, 2.6, 2.4),
-    ell('k', 18.2, 2.3, 0.9, 0.8),
-    // A round head, about half its height
-    ...furBall(12.6, 8.6, 8.4, 7.4),
-    // Slanted grey eye patches, lower at the outside; the far one narrower
-    ell('P', 9.2, 8.6, 2, 2.4),
-    ell('P', 8.6, 9.8, 1.8, 1.8),
-    ell('P', 16.2, 8.4, 2.3, 2.5),
-    ell('P', 16.9, 9.7, 2.1, 2),
-    // A little triangle nose and a short mouth, towards the facing side
-    rect('N', 12.5, 11.9, 2.5, 0.6),
-    rect('N', 13.1, 12.5, 1.3, 0.6),
-    rect('N', 12.9, 14, 1.8, 0.6),
+    // Dark body
+    ell('K', 13, 21.6, 11.4, 6.8),
+    // The white hip on the back edge, with the back foot under it
+    ell('S', 3.9, 21.4, 2.5, 4.6),
+    ell('W', 3.8, 21, 2.2, 4.2),
+    ell('K', 4.8, 26.3, 2.6, 1.6),
+    // The white belly on the facing side
+    ...furBall(16.4, 21.8, 5.4, 5.8),
+    // The arm's sheen, and the leg block in the middle with a lighter pad
+    // The arm, its own outlined shape, running from the shoulder down to the
+    // hand resting against the hip
+    ell('O', 7, 16.6, 3.1, 2.9),
+    ell('O', 8.6, 19, 3.1, 2.9),
+    ell('O', 10, 21.2, 3, 2.6),
+    ell('K', 7, 16.6, 2.5, 2.3),
+    ell('K', 8.6, 19, 2.5, 2.3),
+    ell('K', 10, 21.2, 2.4, 2),
+    // The leg block in the middle, outlined against the body, with a pad
+    ell('O', 10.9, 24.2, 3.7, 3.9),
+    ell('K', 10.9, 24.2, 3.1, 3.4),
+    ell('k', 10.9, 24.6, 1.4, 1.9),
+    // The big front foot, bulging out on the facing side
+    ...(s.isMunching ? [] : frontFoot),
+    // The collar across the chest, under the head
+    ell('K', 12.8, 15.6, 7.4, 1.9),
+    // Ears
+    ell('K', 6.3, 2.1, 2.6, 2.3),
+    ell('K', 19.2, 1.9, 2.2, 2.1),
+    ell('k', 5.6, 1.5, 0.9, 0.8),
+    // The head, about half its height
+    ...furBall(12.8, 7.6, 9.4, 7.2),
+    // Grey eye patches
+    ell('P', 11.7, 8.3, 2.5, 2.5),
+    ell('P', 18.2, 8.5, 2.3, 2.6),
+    // A wide triangle nose and a long mouth line, towards the facing side
+    rect('N', 13.6, 10.7, 3.6, 1),
+    rect('N', 14.2, 11.7, 2.4, 0.7),
+    rect('N', 14.9, 12.4, 1, 0.6),
+    rect('N', 13.2, 13.1, 4.2, 0.7),
   ]
-  if (s.isAsleep || s.isBlinking) shapes.push(rect('L', 7.8, 9, 2.8, 0.6), rect('L', 14.8, 9, 3.2, 0.6))
+  if (s.isAsleep || s.isBlinking) shapes.push(rect('L', 10.3, 8.8, 3, 0.6), rect('L', 16.8, 8.8, 3, 0.6))
   else if (s.isHappy) {
     // Shades on
-    shapes.push(rect('B', 7, 7.2, 4.4, 2.8), rect('B', 14, 7, 5, 2.8), rect('B', 11.4, 7.4, 2.6, 0.8), rect('B', 19, 7.2, 1.6, 0.8))
-    shapes.push(rect('w', 7.8, 7.6, 0.6, 0.6), rect('w', 14.8, 7.4, 0.6, 0.6))
+    shapes.push(rect('B', 9.2, 6.6, 5, 3.6), rect('B', 15.8, 6.6, 5, 3.6), rect('B', 14.2, 7.2, 1.6, 0.8))
+    shapes.push(rect('B', 7.4, 7, 1.8, 0.8), rect('B', 20.8, 7, 1.6, 0.8))
+    shapes.push(rect('w', 10, 7.2, 0.6, 0.6), rect('w', 16.6, 7.2, 0.6, 0.6))
   } else {
-    // Small dark eyes with a tiny glint: calm rather than wide-eyed
-    shapes.push(ell('E', 9.6, 8.8, 0.8, 1.1), ell('E', 16.6, 8.7, 0.9, 1.2))
-    shapes.push(rect('w', 9.4, 8.2, 0.6, 0.6), rect('w', 16.4, 8.1, 0.6, 0.6))
+    // Plain dark pupils, set towards the facing side of each patch
+    shapes.push(rect('E', 11.9, 7.6, 1.3, 1.9), rect('E', 18.2, 7.8, 1.1, 1.7))
   }
-  if (s.chew) shapes.push(rect('R', 13.1, 13.4, 1.3, 1))
+  if (s.chew) shapes.push(rect('R', 14.6, 13.8, 1.6, 0.6))
   if (s.isMunching) {
     // A stalk of bamboo held up in front, leaves at the top
-    shapes.push(rect('G', 18.6, 4, 1.8, 20), px('g', [18.6, 9], [19.4, 16]))
-    shapes.push(ell('g', 21.4, 4.4, 2, 0.9), ell('g', 17.2, 5.2, 1.8, 0.8))
-    shapes.push(ell('K', 18.4, 15.4, 2.4, 2), ell('k', 17.8, 14.8, 0.8, 0.6))
+    shapes.push(rect('G', 21, 5, 1.8, 22), px('g', [21, 10], [21.8, 18]))
+    shapes.push(ell('g', 23.6, 5.4, 2, 0.9), ell('g', 19.6, 6.2, 1.8, 0.8))
+    shapes.push(ell('K', 21, 17.4, 2.6, 2.2), ell('k', 20.4, 16.8, 0.8, 0.6))
+    shapes.push(...frontFoot)
   }
-  return { w: 24, h: 26, shapes }
+  return { w: 26, h: 28, shapes }
 }
 
 function walking(s: Scene): Pose {
@@ -230,7 +246,7 @@ const PX = 2.5 // ...with smaller pixels, so the panda keeps its size
 const UNIT = 4 // grass, shadow and speech bubble keep chunkier pixels
 const CELL = 8
 const LIFT = 5
-const TALLEST = Math.ceil(26 * DESK_SCALE) + 2 // the sitting pose, with its outline
+const TALLEST = Math.ceil(28 * DESK_SCALE) + 2 // the sitting pose, with its outline
 
 function react(text: string): string {
   const t = text.toLowerCase()
