@@ -38,7 +38,7 @@ const isHidden = atom({ plugin: 'buddy', key: 'isHidden' } as const, false)
 let kind: Kind = 'dino'
 // How tall the buddy may be in the terminal, in pixel rows (two per text row)
 // Pixel rows the buddy may use in the terminal, two per text row
-const TERM_ROWS = 16
+const TERM_ROWS = 18
 // Whether the terminal draws the buddy as a real picture: on, off, or auto
 // (on in terminals known to draw pictures: kitty, Ghostty, WezTerm)
 type Hd = 'auto' | 'on' | 'off'

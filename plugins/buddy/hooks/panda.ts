@@ -2,8 +2,7 @@ import type { Scene } from '../types'
 import { bubbleSvg, halfBlocksFromPixels, mirror, outline, pick, pixels, put, shadowSvg, smoothResize, spriteToRgba, svgOpen } from './shared'
 import type { Character } from './shared'
 
-// The panda: pixel art for sitting (art/sit.png) and walking (art/walk-1.png,
-// art/walk-2.png), facing right. Blinking, shades, chewing and the bamboo are
+// The panda: pixel art for sitting and walking (art/panda.png), facing right. Blinking, shades, chewing and the bamboo are
 // drawn over the sitting sprite in code.
 //
 // Pixels: E outline and eyes, K dark fur, k lighter dark fur, W white fur,
@@ -12,39 +11,23 @@ import type { Character } from './shared'
 type Pose = { w: number; h: number; sprite: string[] }
 
 const SIT = [
-  '.....EEEE..........EEE........',
-  '....EEKkkE.EEEEEE.EEkkKE......',
-  '...EEkEEkkEWWWWWWkkEkkkE......',
-  '...EEEEEkEWWWWWWWWWWEkkE......',
-  '...EEEEEESWWWWWWWWWWWEE.......',
-  '....EEEESWWWWWWWWWWWWWE.......',
-  '.....EESSWWWWWWWWWWWWWEE......',
-  '.....ESSWWWkkkWWWWWkkWWE......',
-  '....EESSWWkkkkkWWWWkkkWWE.....',
-  '....ESSWWkkkEEkWWWWkEkkWE.....',
-  '....ESSWWkkkEEkWWWWkEkkWE.....',
-  '....ESSWWkkkkkWWWWWWkkkWE.....',
-  '....ESSSWWkkkWWWEEEEWkWWE.....',
-  '....EKSSWWWWWWWWWEEEWWWWE.....',
-  '...EEKSSSWWWWWWWWWEWWWWE......',
-  '...EEKKSSSWWWWWEEEEEWWSE......',
-  '..EEKKKKKSSWWWWWWWWWWSE.......',
-  '..EKKKKKKKSSSSSSSSSSEEE.......',
-  '.EEEEKKKKKEkkkkkkkkkEKKE......',
-  '.ESSEKKKKKKEkkkkkkkkkEKKE.....',
-  '.ESSSEKKKKKEEWWWWWWWWEKKE.....',
-  'EESSSEKKKKKKKEWWWWWWWWEKKE....',
-  'ESSWSSEKKKKKKKEWWWWWWWEKKE....',
-  'ESSWWSEKKKKKKKKEWWWWWWWEKE....',
-  'ESSWWWWEEEEEEKKEWWWWWWWEEEEEE.',
-  'ESSWWWEkkkkkkEEWWWWWWWWEEkkkkE',
-  'ESSSWEKKkkkkkkEWWWWWWWSEkkkkkE',
-  'ESSSEKKKkkKKKkEWWWWWWWSEkkkkkE',
-  'EESSEKKKkkKKKkEWWWWWWSEKkkkkkE',
-  '.ESSEKKKKkKKKkEWWWWWSSEKkkkkE.',
-  '..ESEKKKKkKKKkESSSSSSEEKKkkkE.',
-  '..EEEEEKKKkkkEESSSSSEEEKKKKE..',
-  '.....EEEEEEEEEEEEEEEEEEEEEE...',
+  '...KKK.....KKK...',
+  '..KKKKEWWWEKKKK..',
+  '..KKKSWWWWWWKKK..',
+  '..KKWWWWWWWWWKK..',
+  '...WWWWWWWWWWW...',
+  '..KWKKKWWWKKKWK..',
+  '..KWkKKWWWkKKWK..',
+  '..KWWKWKKKWKWWK..',
+  '...EWWWWEWWWWE...',
+  '...KKEWWWWWWKK...',
+  '..EKKEEEEEEEKKE..',
+  '..EKKKWWWWWKKKE..',
+  '.EEKKKEWWWEKKKEE.',
+  'KKKKKEEWWWEEEKKKK',
+  'KKKESWWWWWWWSEKKK',
+  'KKKEEWWWWWWWEEKKK',
+  '.EEEEESSSSSEEEEE.',
 ]
 const SIT_W = SIT[0]?.length ?? 0
 const SIT_H = SIT.length
@@ -55,92 +38,76 @@ function sitting(s: Scene): Pose {
     for (let c = c0; c <= c1; c++) put(rows, r, c, ch)
   }
   if (s.isAsleep || s.isBlinking) {
-    // Pupils gone, a lighter line across each patch
-    set(9, 12, 13, 'k')
-    set(10, 12, 13, 'k')
-    set(9, 20, 20, 'k')
-    set(10, 20, 20, 'k')
-    set(10, 10, 13, 'L')
-    set(10, 19, 22, 'L')
+    // A lighter line across each eye patch
+    set(5, 4, 6, 'K')
+    set(5, 10, 12, 'K')
+    set(6, 4, 6, 'L')
+    set(6, 10, 12, 'L')
   } else if (s.isHappy) {
     // Shades on: two lenses, a bridge, and arms out to the ears
-    for (let r = 8; r <= 10; r++) {
-      set(r, 8, 14, 'B')
-      set(r, 17, 22, 'B')
+    for (let r = 5; r <= 6; r++) {
+      set(r, 3, 7, 'B')
+      set(r, 9, 13, 'B')
     }
-    set(9, 15, 16, 'B')
-    set(9, 6, 7, 'B')
-    put(rows, 9, 23, 'B')
-    put(rows, 8, 9, 'w')
-    put(rows, 8, 18, 'w')
+    put(rows, 5, 8, 'B')
+    put(rows, 5, 2, 'B')
+    put(rows, 5, 14, 'B')
+    put(rows, 5, 4, 'w')
+    put(rows, 5, 10, 'w')
   }
-  if (s.chew) set(16, 16, 18, 'R')
+  if (s.chew) set(8, 7, 9, 'R')
   if (s.isMunching) {
     // A stalk of bamboo held up in the near paw, leaves at the top
-    for (let r = 5; r <= 23; r++) set(r, 24, 25, 'G')
-    put(rows, 10, 24, 'g')
-    put(rows, 17, 25, 'g')
-    set(4, 26, 28, 'g')
-    set(5, 21, 23, 'g')
-    set(18, 22, 26, 'E')
-    set(19, 22, 26, 'K')
-    set(20, 22, 26, 'K')
-    set(21, 22, 26, 'K')
-    set(22, 22, 26, 'E')
+    for (let r = 2; r <= 12; r++) put(rows, r, 15, 'G')
+    put(rows, 1, 16, 'g')
+    put(rows, 3, 16, 'g')
+    put(rows, 2, 14, 'g')
+    put(rows, 6, 16, 'g')
+    set(10, 13, 16, 'E')
+    set(11, 13, 16, 'K')
+    set(12, 13, 16, 'E')
   }
   return { w: SIT_W, h: SIT_H, sprite: rows }
 }
 
-// The walking panda is pixel art too (art/walk-1.png and art/walk-2.png),
-// two steps, facing right
+// The walking panda is pixel art too (art/walk.png), facing right; the
+// second step is the first with its legs moved
 const WALK = [
   [
-    '................EEEEEEEEEEE.......................',
-    '............EEEEWWWWWWWSKKKEEEEEE...EE............',
-    '..........EESSSWWWWWWWWSKKKKKKKSSEEEWWEEEE........',
-    '.........ESSWWWWWWWWWWSKKKKKKKKSWWWWWWWKKEE.......',
-    '........ESWWWWWWWWWWWWSKKKKKKKKKSWWWWWKKKESE......',
-    '.......EWWWWWWWWWWWWWWSKKKKKKKKKKSWWWEKKEESE......',
-    '......EWWWWWWWWWWWWWWWSKKKKKKKKKKSWWWEEESSWWE.....',
-    '.....ESWWWWWWWWSWWWWWSSKKKKKKKKKKESWSSESWWWWWSE...',
-    '.....EWWWWWWSWWWSWWWWSKKKKKKKKKKKKSWWSSWWWWWWWE...',
-    '....ESSSSSSSSSWWWWWWWKKKKKKKKKKKKKSWWWWWWWkkWSE...',
-    '....ESSSSkkkkSSWWWWWSKKKKKKKKKKKKKKWWSWWWkKEEWE...',
-    '...ESSSSkkkkkkSSWWWSSKKKKKKKKKKKKKKSWSWWWkEEEWWE..',
-    '...ESSSEKkkkkkkSSSSSKKKKKKKKKKKKKEESWSWWkkEEWWWWE.',
-    '...ESSSEKKKKkKKKkSSSKKKKKKKKKKKKEEESSSSWWkkWWWWWE.',
-    '....ESSEKKKKKKKKKSSEKKKKKKKKKKKEEEEEEEESSWWWWWkEE.',
-    '...EEEEEEKKKKKKKKESEEEKKKKKKKEEEEEEKEEEEEESSSEE...',
-    '..EKKKKKEKKKKKKKKESEEEKKKKKEEEEEEKKEE.....EEE.....',
-    '.EKKKKKKEEEKKKKKKEEEEKKKKKE...EEKKKKKE............',
-    'EKKKKKKE..EKKKKKEE.EEKKKKKE....EEKKKKKEE..........',
-    'EKKKKEE....EKKKKEE..EKKKKEE.....EEKKKKKKE.........',
-    'EKKKKE.....EEKKKKKE.EEKKKE........EEKKKKkE........',
-    '.EEEEE......EEEEEEE..EEEkKEE.......EEEEEEE........',
+    '..................KKK..',
+    '............KKKK..KKK..',
+    '...........EKKKKEWWKKK.',
+    '.....EEEEEEEKKKWWWWWKK.',
+    '...EKWWWWWWEKKWWWWWWWK.',
+    '..KWWWWWWWWKEWWWWkkWWW.',
+    'EKKWWWWWWWKKEWWWkkEEWW.',
+    'EKKWWWWWWWKKEWWWkkEEWKE',
+    '.KWWWWWWWWKKKKWWkkkWWWE',
+    '..KKKWWWWWKKKKWWWkkWWW.',
+    '..KKKWWWWWSKKKKWWWWWWE.',
+    '.KKKKKSSSSSKKKKKKWWW...',
+    '.KKKKKKK..KEKKKKKSS....',
+    'EKKKKEEE..EEEKKKK......',
+    'EKKKEEEEE.KEE.KKKKK....',
+    'EEEE.EEEE..KKK.KKKK....',
   ],
   [
-    '................EEEEEEEEEEE.......................',
-    '.............EEEWWWWWWWSKKKEEEEEEE...EE...........',
-    '..........EEESSWWWWWWWWSKKKKKKKSSSEEEWWEEEE.......',
-    '.........ESSSWWWWWWWWWWKKKKKKKKKSWWWWWWWKKKE......',
-    '........ESWWWWWWWWWWWWWKKKKKKKKKKSWWWWWEKKKSE.....',
-    '.......EWWWWWWWWWWWWWWWKKKKKKKKKKSWWWWEKKEESEE....',
-    '......EWWWWWWWWWWWWWWWSKKKKKKKKKKKSWWWEKKkSWWEE...',
-    '.....ESWWWWWWWWSWWWWWWSKKKKKKKKKKKESWSSESWWWWWSE..',
-    '....EkWWWWWWSWWWSWWWWWSKKKKKKKKKKKKSWWSSWWWWWWWE..',
-    '....EWWWSSSSSSWWWWWWWWKKKKKKKKKKKKKSWWWWWWWkkWSE..',
-    '....EWWSSkkkkkSWWWWWWSKKKKKKKKKKKKKKWWWWWWkEEEWE..',
-    '...EWWWSkkkkkkkSWWWWSSKKKKKKKKKKKKKKSWSWWWkEEEWWE.',
-    '...EWWSKKKkkkkKkSSSSSKKKKKKKKKKKKKKESSSWWkkEEWWWWE',
-    '...ESSSEKKKKkkKKKSSSSKKKKKKKKKKKKKEEESSSWWkkWWWWWE',
-    '....EEEEEKKKKKKKKSSSKKKKKKKKKKKKEEEEEEESSSSWWSWWE.',
-    '...EEKKEEKKKKKKKKESSKKKKKKKKKKKEEEEEE..EEEESSSEE..',
-    '..EKKKKKEEKKKKKKKESSKKKKKKKKKE.EEEKKE......EEE....',
-    '.EKKKKKEEEEKKKKKKEEEEEEKKKKKEE.EEKKKKEE...........',
-    'EKKKKKEE..EEKKKKKE.....EKKKKKE..EEKKKKEE..........',
-    'EKKKEE.....EKKKKEKE....EKKKKE.....EKKKKKE.........',
-    'EKKKKE.....EEKKKKKKE....EKKkEE.....EKKKKkE........',
-    '.EEEEE......EEEEEkEE....EEEEkE......EEEEEE........',
+    '..................KKK..',
+    '............KKKK..KKK..',
+    '...........EKKKKEWWKKK.',
+    '.....EEEEEEEKKKWWWWWKK.',
+    '...EKWWWWWWEKKWWWWWWWK.',
+    '..KWWWWWWWWKEWWWWkkWWW.',
+    'EKKWWWWWWWKKEWWWkkEEWW.',
+    'EKKWWWWWWWKKEWWWkkEEWKE',
+    '.KWWWWWWWWKKKKWWkkkWWWE',
+    '..KKKWWWWWKKKKWWWkkWWW.',
+    '..KKKWWWWWSKKKKWWWWWWE.',
+    '.KKKKKSSSSSKKKKKKWWW...',
+    '..KKKKKKK..KKKKKSS.....',
+    '.EKKKKEEE..EKKKK.......',
+    '.EKKKEEEEE.E.KKKKK.....',
+    '.EEEE.EEEE.KK.KKKK.....',
   ],
 ]
 
@@ -158,10 +125,10 @@ function pose(s: Scene): Pose {
 
 // ---------------------------------------------------------------- drawing
 
-const TERM_W = 36 // columns the terminal strip may take
+const TERM_W = 24 // columns the terminal strip may take
 // The hd picture's canvas: wide enough for the walking pose, tall enough for
 // the sitting one plus the highest jump
-const CANVAS_W = 50
+const CANVAS_W = 24
 const CANVAS_H = SIT_H + 4
 
 function onCanvas(sprite: string[], air: number): string[] {
@@ -180,7 +147,7 @@ function onCanvas(sprite: string[], air: number): string[] {
   }
   return rows
 }
-const TERM_MAX_ROWS = 34 // pixel rows at most, two per text row: the art at full size
+const TERM_MAX_ROWS = 18 // pixel rows at most, two per text row: the art at full size
 
 const TERM = {
   E: '#1e2026',
