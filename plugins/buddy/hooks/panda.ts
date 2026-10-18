@@ -3,7 +3,7 @@ import { bubbleSvg, halfBlocksFromPixels, mirror, outline, pick, pixels, put, sh
 import type { Character } from './shared'
 
 // The panda: pixel art for sitting and walking (art/panda.png), facing right. Blinking, shades, chewing and the bamboo are
-// drawn over the sitting sprite in code.
+// drawn over the sitting sprite in code; the art itself is used as is.
 //
 // Pixels: E outline and eyes, K dark fur, k lighter dark fur, W white fur,
 // S shaded white fur, w eye glint, L closed-eye line, B shades, R open
@@ -16,16 +16,16 @@ const SIT = [
   '..KKKSWWWWWWKKK..',
   '..KKWWWWWWWWWKK..',
   '...WWWWWWWWWWW...',
-  '..KWKKKWWWKKKWK..',
-  '..KWkKKWWWkKKWK..',
-  '..KWWKWKKKWKWWK..',
+  '..KWSkkWWWkkSWK..',
+  '..KWkEEWWWEEkWK..',
+  '..KWWkWKKKWkWWK..',
   '...EWWWWEWWWWE...',
   '...KKEWWWWWWKK...',
   '..EKKEEEEEEEKKE..',
   '..EKKKWWWWWKKKE..',
-  '.EEKKKEWWWEKKKEE.',
-  'KKKKKEEWWWEEEKKKK',
-  'KKKESWWWWWWWSEKKK',
+  '.EEkKKEWWWEKKKEE.',
+  'KKKWKEEWWWEEESKKK',
+  'EKKESWWWWWWWSEKKK',
   'KKKEEWWWWWWWEEKKK',
   '.EEEEESSSSSEEEEE.',
 ]
@@ -43,17 +43,6 @@ function sitting(s: Scene): Pose {
     set(5, 10, 12, 'K')
     set(6, 4, 6, 'L')
     set(6, 10, 12, 'L')
-  } else if (s.isHappy) {
-    // Shades on: two lenses, a bridge, and arms out to the ears
-    for (let r = 5; r <= 6; r++) {
-      set(r, 3, 7, 'B')
-      set(r, 9, 13, 'B')
-    }
-    put(rows, 5, 8, 'B')
-    put(rows, 5, 2, 'B')
-    put(rows, 5, 14, 'B')
-    put(rows, 5, 4, 'w')
-    put(rows, 5, 10, 'w')
   }
   if (s.chew) set(8, 7, 9, 'R')
   if (s.isMunching) {

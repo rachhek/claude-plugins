@@ -6,7 +6,7 @@ A pixel buddy for [Claude Code](https://code.claude.com): a dino or a panda that
 
 - **You send a message:** it jumps and reacts to what you wrote
 - **Claude is working:** it runs back and forth, hopping on each tool call
-- **Claude finishes:** shades on, double jump
+- **Claude finishes:** double jump (the dino puts its shades on)
 - **Idle:** it wanders (the panda sits down to munch bamboo)
 - **Nothing for a minute:** it naps
 
@@ -48,4 +48,4 @@ Characters live in `hooks/dino.ts` and `hooks/panda.ts`; the engine is `hooks/re
 
 ## Art
 
-The panda's sitting and walking poses are pixel art in `art/panda.png` (facing right): a 17 × 17 sitting pose and a 23 × 16 walking pose, read into `hooks/panda.ts` as the `SIT` and `WALK` rows; the second walking step is the first with its legs moved. Blinking, sunglasses, chewing and the bamboo are drawn over the sitting pose in code. When it falls asleep it sits down, closes its eyes and snores.
+The panda's sitting and walking poses are pixel art in `art/panda.png` (facing right): a 17 × 17 sitting pose and a 23 × 16 walking pose, read into `hooks/panda.ts` as the `SIT` and `WALK` rows; the second walking step is the first with its legs moved. Blinking, chewing and the bamboo are drawn over the sitting pose in code. When it falls asleep it sits down, closes its eyes and snores.
