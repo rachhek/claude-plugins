@@ -60,6 +60,11 @@ function react(text: string): string {
 export const dino: Character = {
   width: W,
   canMunch: false,
+  rolls: false,
+  stride: 0,
+  snackLane: 0,
+  chases: false,
+  pace: 1,
 
   terminal(s, cols) {
     let ground = ''

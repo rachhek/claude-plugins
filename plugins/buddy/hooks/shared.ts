@@ -5,8 +5,24 @@ import type { Scene } from '../types'
 export type Character = {
   /** Columns the terminal sprite takes */
   width: number
-  /** Whether it sits down for a snack when idle */
+  /** Whether it stops for a snack when idle */
   canMunch: boolean
+  /** Columns its snack takes up ahead of it (a mouse to chase, a fly to zap); 0 if none */
+  snackLane: number
+  /** Whether it runs after its snack rather than staying put */
+  chases: boolean
+  /**
+   * For a buddy whose snack is a critter loose in the band (the frog's fly):
+   * where its mouth is (pixel row and column, facing right) and how many
+   * columns in front its tongue reaches. The critter stays until it's caught
+   */
+  tongue?: { mouth: [number, number]; reach: number }
+  /** Whether it rolls along the ground where others jump */
+  rolls: boolean
+  /** Columns it travels per tick while jumping or rolling: 0 jumps straight up */
+  stride: number
+  /** Ticks per step when it walks or runs: 1 is brisk, more is slower */
+  pace: number
   /** Draw for the terminal, in `cols` columns and at most `rows` pixel rows (two per text row) */
   terminal: (s: Scene, cols: number, rows: number) => TerminalDrawing
   svg: (s: Scene, cols: number) => string
@@ -27,15 +43,41 @@ export type TerminalDrawing = {
   rows: Cell[][]
   ground: string
   groundColor: string
+  /** Columns the drawing starts left of the buddy, for something running ahead of it */
+  offset?: number
 }
 
 export const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(Math.random() * xs.length)] as T
 
+// Set one pixel; one outside the sprite is dropped, so things can slide in from off the edge
 export function put(rows: string[], r: number, c: number, p: string) {
   const row = rows[r]
-  if (row === undefined) return
+  if (row === undefined || c < 0 || c >= row.length) return
   rows[r] = row.slice(0, c) + p + row.slice(c + 1)
 }
+
+// Lay a small block of pixels over a sprite at row r, column c ('.' leaves what's there)
+export function stamp(rows: string[], r: number, c: number, block: readonly string[]) {
+  block.forEach((line, i) => [...line].forEach((p, j) => p !== '.' && put(rows, r + i, c + j, p)))
+}
+
+/** Ticks a snack's critter takes to come in from the screen edge before the buddy goes after it */
+export const APPROACH = 20
+
+// Columns of band in front of a buddy at x, `width` wide, facing dir
+export const roomAhead = (x: number, dir: 1 | -1, width: number, cols: number) =>
+  Math.max(0, dir === 1 ? cols - 1 - x - width : x)
+
+// How far in front of a buddy something coming in is, `ticks` into a run-in of
+// `length` ticks: from `far` (past the screen edge) to `near`, slowing as it arrives
+export function comingIn(ticks: number, length: number, far: number, near: number): number {
+  const t = Math.min(ticks, length) / length
+  return Math.round(near + (Math.max(far, near) - near) * (1 - t) ** 2)
+}
+
+// The sprite turned a quarter clockwise
+export const turn = (rows: string[]): string[] =>
+  [...(rows[0] ?? '')].map((_, c) => rows.map(r => r[c] ?? '.').reverse().join(''))
 
 export const mirror = (rows: string[], dir: 1 | -1) => (dir === 1 ? rows : rows.map(r => [...r].reverse().join('')))
 

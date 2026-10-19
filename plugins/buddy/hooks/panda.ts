@@ -1,5 +1,5 @@
 import type { Scene } from '../types'
-import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, svgOpen } from './shared'
+import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, svgOpen, turn } from './shared'
 import type { Character } from './shared'
 
 // The panda: pixel art for sitting and walking, facing right, drawn one art
@@ -34,6 +34,24 @@ const SIT = [
 const SIT_W = SIT[0]?.length ?? 0
 const SIT_H = SIT.length
 
+// Eating, laid over the sitting pose (widened two columns each side) from
+// row 3: a stalk of bamboo held in one paw, running up through its mouth and
+// out past its cheek, leaves at the top
+const EAT = [
+  '...................g.',
+  '....................g',
+  '..................ggG',
+  '................ggGG.',
+  '..............gGGG...',
+  '...........gggGE.....',
+  '......EEEggGGG.......',
+  '....EEkkgGG..........',
+  '....EkkkG............',
+  '...gGGkk.............',
+  '.ggGE.EE.............',
+  '.GG..................',
+]
+
 function sitting(s: Scene): Pose {
   const rows = [...SIT]
   const set = (r: number, c0: number, c1: number, ch: string) => {
@@ -46,19 +64,15 @@ function sitting(s: Scene): Pose {
     set(6, 4, 5, 'L')
     set(6, 11, 12, 'L')
   }
-  if (s.chew) set(8, 7, 9, 'R')
-  if (s.isMunching) {
-    // A stalk of bamboo held up in the near paw, leaves at the top
-    for (let r = 2; r <= 12; r++) put(rows, r, 15, 'G')
-    put(rows, 1, 16, 'g')
-    put(rows, 3, 16, 'g')
-    put(rows, 2, 14, 'g')
-    put(rows, 6, 16, 'g')
-    set(10, 13, 16, 'E')
-    set(11, 13, 16, 'K')
-    set(12, 13, 16, 'E')
+  if (!s.isMunching) return { w: SIT_W, h: SIT_H, sprite: rows }
+  const wide = rows.map(r => `..${r}..`)
+  EAT.forEach((row, r) => [...row].forEach((p, c) => p !== '.' && put(wide, 3 + r, c, p)))
+  // The jaw drops while it chews
+  if (s.chew) {
+    put(wide, 10, 8, 'R')
+    put(wide, 10, 9, 'R')
   }
-  return { w: SIT_W, h: SIT_H, sprite: rows }
+  return { w: SIT_W + 4, h: SIT_H, sprite: wide }
 }
 
 // The walking panda, facing right. One step shows all four legs apart, the
@@ -107,7 +121,32 @@ function walking(s: Scene): Pose {
   return { w: frame[0]?.length ?? 0, h: frame.length, sprite: [...frame] }
 }
 
+// Curled into a ball for a roll, eyes shut; turned a quarter every other tick
+const BALL = [
+  '....EEEEE....',
+  '..EEKKWWWEE..',
+  '.EKKKWWWWWWE.',
+  '.EKKWWWWKKWE.',
+  'EWWWWWWKKKKWE',
+  'EWWWWWWKLLKWE',
+  'EWWWWWWWKKWWE',
+  'EWWWWWWWWWEWE',
+  'EKKKWWWWWWWWE',
+  '.EKKKKWWWKKE.',
+  '.EKKKKKKKKKE.',
+  '..EEKKKKKEE..',
+  '....EEEEE....',
+]
+
+function rolling(s: Scene): Pose {
+  let sprite = BALL
+  for (let i = 0; i < Math.floor(s.spin / 2) % 4; i++) sprite = turn(sprite)
+  return { w: BALL.length, h: BALL.length, sprite }
+}
+
 function pose(s: Scene): Pose {
+  // Pandas don't jump, they roll
+  if (s.spin > 0) return rolling(s)
   // Asleep, it sits with its eyes closed; the bubble says zZz
   if (s.isAsleep) return sitting(s)
   if (s.air === 0 && (s.legs === 'a' || s.legs === 'b')) return walking(s)
@@ -175,6 +214,11 @@ function react(text: string): string {
 export const panda: Character = {
   width: TERM_W,
   canMunch: true,
+  rolls: true,
+  stride: 0.5,
+  snackLane: 0,
+  chases: false,
+  pace: 2, // pandas take it easy
 
   terminal(s, cols, rows) {
     let ground = ''
@@ -199,7 +243,8 @@ export const panda: Character = {
     const size = p.w * PX
     const groundY = (SIT_H + 1) * PX + AIR * LIFT + 2 * UNIT
     const h = groundY + 3 * UNIT
-    const ox = s.x * CELL
+    // Centred in the widest pose, as in the terminal
+    const ox = s.x * CELL + Math.floor((TERM_W - p.w) / 2) * PX
     // The bottom row is the outline, so it sinks one pixel into the ground
     const oy = groundY - p.h * PX + PX - s.air * LIFT
 
@@ -227,7 +272,7 @@ export const panda: Character = {
 
   lines: {
     hi: 'yo.',
-    jump: 'hup!',
+    jump: 'wheee~',
     done: ['nailed it.', 'done.', 'ez.'],
     abort: 'k.',
     error: 'oof.',

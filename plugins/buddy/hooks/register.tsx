@@ -1,19 +1,22 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Kind, Legs, Scene } from '../types'
+import type { Critter, Kind, Legs, Scene } from '../types'
 import { cat } from './cat'
 import { dino } from './dino'
+import { frog } from './frog'
+import { ghost } from './ghost'
 import { panda } from './panda'
-import { pick, runs } from './shared'
+import { penguin } from './penguin'
+import { APPROACH, pick, runs } from './shared'
 import type { Character } from './shared'
 
-// A pixel buddy that lives in the band above the prompt: a panda, a dino or a cat.
+// A pixel buddy that lives in the band above the prompt: a panda, a dino, a cat, a penguin, a frog or a ghost.
 // It wanders when idle, jumps when you send a message, runs while Claude
 // works, puts its shades on when Claude is done, and naps when nothing has
 // happened for a while. /buddy picks which one.
 
-const CHARACTERS: Record<Kind, Character> = { dino, panda, cat }
+const CHARACTERS: Record<Kind, Character> = { dino, panda, cat, penguin, frog, ghost }
 const isKind = (k: unknown): k is Kind => typeof k === 'string' && Object.hasOwn(CHARACTERS, k)
 
 // ---------------------------------------------------------------- state
@@ -22,6 +25,9 @@ const INITIAL: Scene = {
   x: 4,
   dir: 1,
   air: 0,
+  spin: 0,
+  snack: 0,
+  critter: null,
   legs: 'stand',
   isAsleep: false,
   isBlinking: false,
@@ -41,6 +47,9 @@ let kind: Kind = 'panda'
 let x = INITIAL.x
 let dir: 1 | -1 = 1
 let ground = 0
+let spin = 0
+let snackTicks = 0
+let critter: Critter | null = null // positions kept as fractions, rounded for drawing
 let tick = 0
 let lastActivity = 0
 let working = false
@@ -62,6 +71,48 @@ const HOP = [1, 2, 1, 0]
 
 const me = () => CHARACTERS[kind]
 
+const GULP = 10 // ticks from the tongue hitting a critter to it being gone
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+
+// A critter flies in from past the edge of the band the buddy faces
+function release() {
+  critter = { x: dir === 1 ? cols + 1 : -4, row: 4, caught: -1, age: 0 }
+}
+
+// Where the buddy's mouth is: [band column, pixel row]
+function mouthAt(): [number, number] | null {
+  const t = me().tongue
+  if (!t) return null
+  return [x + (dir === 1 ? t.mouth[1] : me().width - 1 - t.mouth[1]), t.mouth[0]]
+}
+
+// The critter's tick: free, it wanders about, slowly drifting towards the
+// buddy's front, whatever the buddy is doing; caught, it's on its way down
+function flutter() {
+  if (!critter) return
+  critter.age += 1
+  if (critter.caught >= 0) {
+    critter.caught += 1
+    if (critter.caught === 1) say(pick(me().lines.snack), 12)
+    if (critter.caught > GULP) critter = null
+    return
+  }
+  const mouth = mouthAt()
+  if (!mouth) return
+  const target = mouth[0] + dir * 5
+  critter.x = clamp(critter.x + clamp((target - critter.x) * 0.05, -0.6, 0.6) + (Math.random() - 0.5) * 0.6, -4, cols + 1)
+  critter.row = clamp(critter.row + (5 - critter.row) * 0.05 + (Math.random() - 0.5) * 0.8, 1, 9)
+}
+
+// Within reach in front of its mouth, and on the ground: the tongue zaps it
+function tryCatch(onGround: boolean) {
+  const mouth = mouthAt()
+  const reach = me().tongue?.reach ?? 0
+  if (!critter || critter.caught >= 0 || !mouth || !onGround) return
+  const ahead = (Math.round(critter.x) + 1 - mouth[0]) * dir
+  if (ahead >= 2 && ahead <= reach && Math.abs(Math.round(critter.row) + 1 - mouth[1]) <= 4) critter.caught = 0
+}
+
 function say(text: string, ticks = 30) {
   bubble = text.slice(0, 18)
   bubbleTicks = ticks
@@ -82,13 +133,22 @@ function hello() {
 function step(): Scene {
   tick += 1
   const maxX = Math.max(0, cols - me().width - 1)
-  const asleep = !working && tick - lastActivity > SLEEP_AFTER_TICKS && jumps.length === 0
+  const catching = critter !== null && critter.caught >= 0
+  const asleep = !working && !critter && tick - lastActivity > SLEEP_AFTER_TICKS && jumps.length === 0
   let legs: Legs = 'stand'
+  if (catching) jumps = []
 
-  if (working) {
-    x += dir
-    ground += 1
-    legs = tick % 2 ? 'a' : 'b'
+  const pace = me().pace
+  if (catching) {
+    // The tongue's out: sit still for it
+    legs = 'sit'
+  } else if (working) {
+    // A step every `pace` ticks
+    if (tick % pace === 0) {
+      x += dir
+      ground += 1
+    }
+    legs = Math.floor(tick / pace) % 2 ? 'a' : 'b'
   } else if (asleep) {
     munching = false
     legs = 'sit'
@@ -96,23 +156,43 @@ function step(): Scene {
     bubbleTicks = 2
   } else if (pauseTicks > 0) {
     pauseTicks -= 1
-    if (munching) {
+    if (munching && me().chases && snackTicks < APPROACH) {
+      // Its snack is coming in from the edge: hold still and watch
+      legs = 'stand'
+    } else if (munching && me().chases) {
+      // After its snack at full tilt, doubling back now and then as it dodges
+      x += dir
+      legs = tick % 2 ? 'a' : 'b'
+      if (Math.random() < 0.04) dir = dir === 1 ? -1 : 1
+    } else if (munching) {
       legs = 'sit'
-      if (tick % 25 === 0) say(pick(me().lines.snack), 12)
     }
+    if (munching && tick % 25 === 0) say(pick(me().lines.snack), 12)
     if (pauseTicks === 0) munching = false
   } else {
-    // A slow wander, one step every third tick
-    if (tick % 3 === 0) x += dir
-    legs = Math.floor(tick / 3) % 2 ? 'a' : 'b'
+    // A slow wander, a third the speed of running; with a critter about, towards it
+    if (critter) dir = critter.x + 1 > x + me().width / 2 ? 1 : -1
+    if (tick % (3 * pace) === 0) x += dir
+    legs = Math.floor(tick / (3 * pace)) % 2 ? 'a' : 'b'
     walkTicks -= 1
     if (walkTicks <= 0) {
       munching = me().canMunch && Math.random() < 0.5
+      if (me().tongue && !critter && Math.random() < 0.5) release()
       pauseTicks = munching ? 50 + Math.floor(Math.random() * 60) : 10 + Math.floor(Math.random() * 30)
       walkTicks = 15 + Math.floor(Math.random() * 45)
       if (Math.random() < 0.4) dir = dir === 1 ? -1 : 1
     }
   }
+
+  // Jumping or rolling, it travels `stride` columns a tick (in whole steps)
+  const inJump = jumps.length > 0
+  const stride = me().stride
+  if (inJump) x += dir * (Math.floor((spin + 1) * stride) - Math.floor(spin * stride))
+
+  // During a snack, face the side with room for it (a mouse running ahead, a fly coming in)
+  const lane = munching && !(me().chases && snackTicks < APPROACH) ? me().snackLane : 0
+  if (dir === 1 && x >= maxX - lane) dir = -1
+  else if (dir === -1 && x <= lane) dir = 1
 
   if (x >= maxX) {
     x = maxX
@@ -123,8 +203,13 @@ function step(): Scene {
     dir = 1
   }
 
-  const air = jumps.length ? (jumps.shift() ?? 0) : 0
-  if (air > 0) legs = 'stand'
+  const height = inJump ? (jumps.shift() ?? 0) : 0
+  const air = me().rolls ? 0 : height
+  spin = inJump ? spin + 1 : 0
+  if (height > 0) legs = 'stand'
+
+  flutter()
+  tryCatch(!inJump && !asleep)
 
   // Blink every few seconds, for two frames
   let isBlinking = false
@@ -137,11 +222,14 @@ function step(): Scene {
   if (bubbleTicks > 0) bubbleTicks -= 1
   else bubble = null
 
-  const isMunching = munching && legs === 'sit' && !asleep
+  const isMunching = munching && !asleep && (legs === 'sit' || me().chases)
+  snackTicks = isMunching ? snackTicks + 1 : 0
   return {
     x,
     dir,
     air,
+    spin,
+    snack: snackTicks,
     legs,
     isAsleep: asleep,
     isBlinking: isBlinking && !asleep,
@@ -150,6 +238,7 @@ function step(): Scene {
     chew: isMunching && Math.floor(tick / 3) % 2 === 0,
     bubble,
     ground,
+    critter: critter && { ...critter, x: Math.round(critter.x), row: Math.round(critter.row) },
   }
 }
 
@@ -164,6 +253,7 @@ async function loadSaved($: EngineInterface) {
 
 async function choose($: EngineInterface, next: Kind) {
   kind = next
+  critter = null
   await update($, kindAtom, () => next)
   await update($, isHidden, () => false)
   await $.store.set('kind', next)
@@ -179,7 +269,7 @@ async function setHidden($: EngineInterface, hide: boolean) {
 // ---------------------------------------------------------------- hooks
 
 const PERSON_ORIGINS = new Set(['composer', 'bridge', 'sdk', 'unclassified'])
-const USAGE = 'Usage: /buddy [panda | dino | cat | on | off | jump | snack]'
+const USAGE = 'Usage: /buddy [panda | dino | cat | penguin | frog | ghost | on | off | jump | snack]'
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -196,8 +286,8 @@ export const register: Register = on => {
     try {
       await $.command.register({
         name: 'buddy',
-        description: 'Pick your buddy (panda, dino or cat), or show, hide or poke it',
-        argumentHint: '[panda | dino | cat | on | off | jump | snack]',
+        description: 'Pick your buddy (panda, dino, cat, penguin, frog or ghost), or show, hide or poke it',
+        argumentHint: '[panda | dino | cat | penguin | frog | ghost | on | off | jump | snack]',
         immediate: true,
       })
     } catch {
@@ -235,7 +325,13 @@ export const register: Register = on => {
       return {}
     }
     if (arg === 'snack') {
-      if (!me().canMunch) return { text: `The ${kind} isn't hungry. Try /buddy panda or /buddy cat.` }
+      if (me().tongue) {
+        // A fly: it stays about until it's caught
+        if (!critter) release()
+        wake()
+        return {}
+      }
+      if (!me().canMunch) return { text: `The ${kind} isn't hungry. Try another buddy.` }
       wake()
       munching = true
       pauseTicks = 80
@@ -247,7 +343,7 @@ export const register: Register = on => {
     // No argument: ask which buddy, in Claude Code's own question dialog
     let answer = ''
     try {
-      answer = await $.ui.ask('Pick your buddy', ['Panda', 'Dino', 'Cat', 'Hide it'])
+      answer = await $.ui.ask('Pick your buddy', ['Panda', 'Dino', 'Cat', 'Penguin', 'Frog', 'Ghost', 'Hide it'])
     } catch {
       return { text: USAGE }
     }
@@ -320,6 +416,9 @@ export const register: Register = on => {
       const { Box, Text } = $.ui.resolve(e)
       // Pixel rows the band has room for, less one text row for the ground
       const drawing = who.terminal(at, cols, (e.props.maxRows - 1) * 2)
+      // Never past either edge of the band: a row too wide gets squeezed and comes out garbled
+      const drawn = drawing.rows[0]?.length ?? who.width
+      const left = Math.max(0, Math.min(x - (drawing.offset ?? 0), cols - drawn))
       const lines = drawing.rows.map((row, i) => {
         const sprite = runs(row).map((run, j) =>
           run.fg ? (
@@ -341,25 +440,25 @@ export const register: Register = on => {
         // The speech bubble rides on the top row, beside the buddy
         if (i === 0 && s.bubble) {
           const said = `‹${s.bubble}›`
-          const fitsRight = s.dir === 1 && x + who.width + 1 + said.length <= cols
-          const fitsLeft = x >= said.length + 1
+          const fitsRight = s.dir === 1 && left + row.length + 1 + said.length <= cols
+          const fitsLeft = left >= said.length + 1
           if (fitsRight || !fitsLeft) {
             return (
-              <Box key={`r${i}`} flexDirection="row" paddingLeft={x}>
+              <Box key={`r${i}`} flexDirection="row" paddingLeft={left}>
                 {sprite}
                 <Text italic wrap="truncate">{' ' + said}</Text>
               </Box>
             )
           }
           return (
-            <Box key={`r${i}`} flexDirection="row" paddingLeft={x - said.length - 1}>
+            <Box key={`r${i}`} flexDirection="row" paddingLeft={left - said.length - 1}>
               <Text italic wrap="truncate">{said + ' '}</Text>
               {sprite}
             </Box>
           )
         }
         return (
-          <Box key={`r${i}`} flexDirection="row" paddingLeft={x}>
+          <Box key={`r${i}`} flexDirection="row" paddingLeft={left}>
             {sprite}
           </Box>
         )
