@@ -151,7 +151,7 @@ test('/buddy snack sends the cat after a mouse', async ($, on) => {
   await desk.unmount()
 })
 
-for (const kind of ['panda', 'dino', 'cat', 'penguin', 'frog', 'ghost', 'crab', 'duck', 'snail', 'forest', 'aurora']) {
+for (const kind of ['panda', 'dino', 'cat', 'penguin', 'frog', 'ghost', 'crab', 'duck', 'snail', 'forest']) {
   test(`the ${kind} draws through walking, jumping, its snack, happy and asleep`, async ($, on) => {
     const clock = setUp(on)
     on('turn.complete', async () => ({ text: '' }))

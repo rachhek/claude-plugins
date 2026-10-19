@@ -2,7 +2,6 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Critter, Kind, Legs, Scene } from '../types'
-import { aurora } from './aurora'
 import { cat } from './cat'
 import { crab } from './crab'
 import { dino } from './dino'
@@ -17,13 +16,12 @@ import { APPROACH, pick, runs } from './shared'
 import type { Character } from './shared'
 
 // A pixel buddy that lives in the band above the prompt: a panda, a dino, a cat, a penguin, a frog, a ghost,
-// a crab, a rubber duck, a snail, or a whole scene: a little forest or the
-// northern lights.
+// a crab, a rubber duck, a snail, or a whole scene: a little forest.
 // It wanders when idle, jumps when you send a message, runs while Claude
 // works, puts its shades on when Claude is done, and naps when nothing has
 // happened for a while. /buddy picks which one.
 
-const CHARACTERS: Record<Kind, Character> = { dino, panda, cat, penguin, frog, ghost, crab, duck, snail, forest, aurora }
+const CHARACTERS: Record<Kind, Character> = { dino, panda, cat, penguin, frog, ghost, crab, duck, snail, forest }
 // What to call it: "the panda", but a scene by its name ("Forest")
 const nameOf = (k: Kind) =>
   CHARACTERS[k].width > 0 ? `the ${k}` : k.charAt(0).toUpperCase() + k.slice(1)
@@ -291,7 +289,7 @@ async function setHidden($: EngineInterface, hide: boolean) {
 // ---------------------------------------------------------------- hooks
 
 const PERSON_ORIGINS = new Set(['composer', 'bridge', 'sdk', 'unclassified'])
-const USAGE = 'Usage: /buddy [panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | aurora | on | off | jump | snack]'
+const USAGE = 'Usage: /buddy [panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | on | off | jump | snack]'
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -308,8 +306,8 @@ export const register: Register = on => {
     try {
       await $.command.register({
         name: 'buddy',
-        description: 'Pick your buddy (panda, dino, cat, penguin, frog, ghost, crab, duck, snail, forest or aurora), or show, hide or poke it',
-        argumentHint: '[panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | aurora | on | off | jump | snack]',
+        description: 'Pick your buddy (panda, dino, cat, penguin, frog, ghost, crab, duck, snail, or forest), or show, hide or poke it',
+        argumentHint: '[panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | on | off | jump | snack]',
         immediate: true,
       })
     } catch {
@@ -365,7 +363,7 @@ export const register: Register = on => {
     // No argument: ask which buddy, in Claude Code's own question dialog
     let answer = ''
     try {
-      answer = await $.ui.ask('Pick your buddy', ['Panda', 'Dino', 'Cat', 'Penguin', 'Frog', 'Ghost', 'Crab', 'Duck', 'Snail', 'Forest', 'Aurora', 'Hide it'])
+      answer = await $.ui.ask('Pick your buddy', ['Panda', 'Dino', 'Cat', 'Penguin', 'Frog', 'Ghost', 'Crab', 'Duck', 'Snail', 'Forest', 'Hide it'])
     } catch {
       return { text: USAGE }
     }

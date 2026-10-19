@@ -12,7 +12,7 @@ export type Critter = {
   age: number
 }
 
-export type Kind = 'panda' | 'dino' | 'cat' | 'penguin' | 'frog' | 'ghost' | 'crab' | 'duck' | 'snail' | 'forest' | 'aurora'
+export type Kind = 'panda' | 'dino' | 'cat' | 'penguin' | 'frog' | 'ghost' | 'crab' | 'duck' | 'snail' | 'forest'
 
 export type Scene = {
   /** Column of the buddy's left edge */
