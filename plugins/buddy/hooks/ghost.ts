@@ -1,4 +1,4 @@
-import type { Legs, Scene } from '../types'
+import type { Scene } from '../types'
 import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, svgOpen } from './shared'
 import type { Character } from './shared'
 
@@ -10,9 +10,9 @@ import type { Character } from './shared'
 // w eye glint, P blush, R open mouth, B bat, Y bat's eye
 const W = 16
 const H = 14
-const AIR = 4
-// Pixel rows: the ghost, the highest jump and its highest hover
-const ROWS = H + AIR + 2
+// Pixel rows: the ghost and the air below it. It flies, bobbing on a slow
+// wave 2 to 6 pixels up, and a jump takes it 4 higher
+const ROWS = H + 10
 
 const BODY = [
   '.....EEEEEE.....',
@@ -28,18 +28,32 @@ const BODY = [
   '.ESWWWWWWWWWWWE.',
 ]
 
-// The hem: three tails, then two tails where the gaps were, so it flutters
-const HEM = {
-  a: ['.ESSWEWWWWEWWWE.', '.ESSE.EWWE.EWWE.', '..EE...EE...EE..'],
-  b: ['.ESSWWWWWWWWWWE.', '..EESWEEEEWWEE..', '....EE....EE....'],
-}
+// The hem. Hovering, it ripples gently: three tails, then two where the gaps were
+const HOVER_HEM = [
+  ['.ESSWEWWWWEWWWE.', '.ESSE.EWWE.EWWE.', '..EE...EE...EE..'],
+  ['.ESSWWWWWWWWWWE.', '..EESWEEEEWWEE..', '....EE....EE....'],
+]
+// Flying, it streams out behind, rippling fast
+const FLY_HEM = [
+  ['.ESSWWWWWWWWWWE.', 'EESSWWWEEWWWWEE.', '..EEEEE..EEEE...'],
+  ['.ESSWWWWWWWWWWE.', '.EESSWWWWEEWWE..', 'EEE..EEEE..EE...'],
+]
+// Flying, the sheet below its face drags back, away from where it's going: the
+// last body row a little, the hem more. TRAIL columns behind it make room
+const TRAIL = 3
+const DRAG_FROM = 10 // the first row that drags (below the mouth)
+const drag = (row: number, d: number) =>
+  row < DRAG_FROM ? 0 : row === DRAG_FROM ? Math.ceil(d / 3) : row === DRAG_FROM + 1 ? Math.round((2 * d) / 3) : d
 
-// Pixels it floats above the ground: it bobs while it drifts and settles a little asleep
-const HOVER: Record<Legs, number> = { stand: 2, a: 2, b: 1, sit: 1 }
+// Columns behind it the trailing sheet may use, short of the band's edge
+const behind = (s: Scene, cols: number) => Math.max(0, Math.min(TRAIL, s.dir === 1 ? s.x : cols - 1 - s.x - W))
+
+// Pixels it flies above the ground: bobbing gently up and down, lower asleep
+const lift = (s: Scene) => (s.isAsleep ? 2 : 4 + Math.round(2 * Math.sin(s.tick * 0.15))) + s.air
 
 const EYES = [5, 6, 10, 11]
 
-function sprite(s: Scene): string[] {
+function sprite(s: Scene, cols: number): string[] {
   const body = [...BODY]
   const set = (r: number, cs: number[], p: string) => cs.forEach(c => put(body, r, c, p))
   if (s.isAsleep || s.isBlinking) {
@@ -59,7 +73,11 @@ function sprite(s: Scene): string[] {
     // Boo! Its mouth wide open
     ;['WEEW', 'ERRE', 'WEEW'].forEach((row, i) => [...row].forEach((p, c) => put(body, 8 + i, 7 + c, p)))
   }
-  const rows = [...body, ...HEM[s.legs === 'b' ? 'b' : 'a']]
+  // Flying when it moves (faster while Claude works or it chases its bat); else hovering
+  const flying = s.legs === 'a' || s.legs === 'b'
+  const speed = !flying ? 0 : s.isWorking || s.isMunching ? 3 : 2
+  const hem = flying ? FLY_HEM[Math.floor(s.tick / 2) % 2] : HOVER_HEM[Math.floor(s.tick / 6) % 2]
+  const rows = [...body, ...(hem ?? [])]
   // Little nub arms, raised as it floats up or when it's happy
   const arm = s.air > 0 || s.isHappy ? 5 : 7
   for (const r of [arm, arm + 1]) {
@@ -68,12 +86,16 @@ function sprite(s: Scene): string[] {
     put(rows, r, 14, 'W')
     put(rows, r, 15, 'E')
   }
-  if (!s.isMunching) return mirror(rows, s.dir)
   // Chasing: a bat flapping along a little way ahead, at the ghost's eye level
   const bat = BAT[s.legs === 'b' ? 1 : 0] ?? []
-  const top = 4
-  const wide = rows.map((r, i) => r + '..' + (bat[i - top] ?? '.'.repeat(LANE - 2)))
-  return mirror(wide, s.dir)
+  const ahead = rows.map((r, i) => (s.isMunching ? r + '..' + (bat[i - 4] ?? '.'.repeat(LANE - 2)) : r))
+  // Room behind, and the sheet dragged back into it
+  const back = behind(s, cols)
+  const trailing = ahead.map((r, i) => {
+    const k = Math.min(back, drag(i, speed))
+    return ('.'.repeat(back) + r).slice(k) + '.'.repeat(k)
+  })
+  return mirror(trailing, s.dir)
 }
 
 // The bat, facing right, wings up then down; it flies in a lane this wide ahead of the ghost
@@ -83,8 +105,9 @@ const BAT = [
 ]
 const LANE = 9
 
-// Columns the drawing starts left of the ghost: the lane, when the bat flies on its left
-const offset = (s: Scene) => (s.isMunching && s.dir === -1 ? LANE : 0)
+// Columns the drawing starts left of the ghost: the room behind it facing right,
+// the bat's lane facing left
+const offset = (s: Scene, cols: number) => (s.dir === 1 ? behind(s, cols) : s.isMunching ? LANE : 0)
 
 const COLOURS = {
   E: '#1c1a26',
@@ -102,7 +125,6 @@ const GROUND = '.   .  .    .   .  .     '
 
 const PX = 6
 const CELL = 8
-const LIFT = 5
 
 function react(text: string): string {
   const t = text.toLowerCase()
@@ -125,29 +147,34 @@ export const ghost: Character = {
   snackLane: LANE,
   chases: true,
 
-  terminal(s, cols) {
+  terminal(s, cols, rows) {
     let ground = ''
     for (let i = 0; i < cols; i++) ground += GROUND[(i + s.ground) % GROUND.length]
-    const sp = sprite(s)
+    const sp = sprite(s, cols)
+    // As much air below it as the band has room for
+    const pixelRows = Math.min(ROWS, Math.max(H, rows - (rows % 2)))
     return {
-      rows: halfBlocks(sp, ROWS - H - HOVER[s.legs] - s.air, sp[0]?.length ?? W, ROWS, COLOURS),
+      rows: halfBlocks(sp, pixelRows - H - Math.min(lift(s), pixelRows - H), sp[0]?.length ?? W, pixelRows, COLOURS),
       ground,
       groundColor: 'gray',
-      offset: offset(s),
+      offset: offset(s, cols),
     }
   },
 
   svg(s, cols) {
-    const sp = sprite(s)
+    const sp = sprite(s, cols)
     const w = cols * CELL
     const size = W * PX
-    const groundY = (H + 2) * PX + AIR * LIFT + 3 * PX
+    const groundY = ROWS * PX + 3 * PX
     const h = groundY + 3 * PX
     const ox = s.x * CELL
-    const oy = groundY - (H + HOVER[s.legs]) * PX - s.air * LIFT
-    // The rim goes round the ghost only, so it never bridges to the bat
-    const o = offset(s)
-    const own = sp.map(r => '.'.repeat(o) + r.slice(o, o + W) + '.'.repeat(r.length - o - W))
+    const oy = groundY - (H + lift(s)) * PX
+    const o = offset(s, cols)
+    // The rim goes round the ghost and its trailing sheet, not the bat's lane
+    const lane = s.isMunching ? LANE : 0
+    const own = sp.map(r =>
+      s.dir === 1 ? r.slice(0, r.length - lane) + '.'.repeat(lane) : '.'.repeat(lane) + r.slice(lane),
+    )
 
     return (
       svgOpen(w, h) +

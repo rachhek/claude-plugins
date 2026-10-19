@@ -77,6 +77,11 @@ Each character is a `Character` (see `shared.ts`):
 - `rolls`: rolls along the ground where others jump. The panda curls into a
   ball with its eyes shut and turns a quarter every other tick
 - `pace`: ticks per step; pandas are chill, so the panda's is 2
+- `width: 0` makes a whole-band scene (the forest): it draws rows exactly
+  `cols` wide with `offset: s.x`, so it sits at column 0, and the engine never
+  gives it a speech bubble
+- The scene also carries `tick` (ten a second, for ambient animation),
+  `isWorking` and `isUpset` (an error or interrupted turn, for a few seconds)
 - `terminal`, `svg`, `lines`: how it draws and what it says
 
 Art lives in the character file as rows of letters, one letter per pixel and

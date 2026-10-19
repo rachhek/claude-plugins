@@ -1,4 +1,4 @@
-import type { Legs, Scene } from '../types'
+import type { Scene } from '../types'
 import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, svgOpen } from './shared'
 import type { Character } from './shared'
 
@@ -9,54 +9,58 @@ import type { Character } from './shared'
 // Pixels: E outline and eyes, K dark back, k lighter flipper, W white belly and face,
 // S shaded white, w eye glint, Y beak and feet, y far foot, P blush,
 // B fish, b fish belly
-const W = 18
-const H = 16
-const AIR = 4
+const W = 19
+const H = 17 // the body, a pixel to bob up into, and its feet
+const AIR = 3 // headroom (it slides rather than jumps, so little is needed)
 
 const BODY = [
-  '......EEEEE.......',
-  '....EEKKKKKEE.....',
-  '...EKKKKKKKKKE....',
-  '...EKKKKKKWWWKE...',
-  '..EKKKKKKWWEwWKE..',
-  '..EKKKKKKWWEEWWEE.',
-  '..EKKKKKKKWWWWWYYE',
-  '..EKKKKKKKWWWWWYE.',
-  '..EKKKKKKWWWWWWE..',
-  '..EKKKKKKWWWWWWE..',
-  '..EKKKKKWWWWWWWE..',
-  '..EKKKKWWWWWWWWE..',
-  '...EKKKWWWWWWWSE..',
-  '...EKKKWWWWWWSE...',
+  '......EEEEE........',
+  '....EEKKKKKEE......',
+  '...EKKKKKKKKKE.....',
+  '...EKKKKKKWWWKE....',
+  '..EKKKKKKWWEwWKE...',
+  '..EKKKKKKWWEEWWEE..',
+  '..EKKKKKKKWWWWWYYE.',
+  '..EKKKKKKKWWWWWYE..',
+  '..EKKKKKKWWWWWWE...',
+  '..EKKKKKKWWWWWWE...',
+  '..EKKKKKWWWWWWWE...',
+  '..EKKKKWWWWWWWWE...',
+  '...EKKKWWWWWWWSE...',
+  '...EKKKWWWWWWSE....',
 ]
 
-const FEET: Record<Exclude<Legs, 'sit'>, string[]> = {
-  stand: ['.....EyyEYYYYE....', '.....EEEEEEEEE....'],
-  // Waddling: a stride with the far foot back, then feet together
-  a: ['...EyyyE..EYYYYE..', '...EEEEE..EEEEEE..'],
-  b: ['......EYYYYYE.....', '......EEEEEEE.....'],
+// Feet planted, the body settled down onto them
+const PLANTED = ['.....EyyEYYYYE.....', '.....EEEEEEEEE.....']
+// A step, the body bobbed up a pixel: the near foot lifted forward, or the far one
+const STEP = {
+  near: ['......EE..EYYYYE...', '.....EyyE.EEEEEE...', '.....EEEE..........'],
+  far: ['.........EyyE......', '.....EYYYYEEEE.....', '.....EEEEEE........'],
 }
 
-// The near flipper, laid over the body from a row: hanging down, swung back
-// (poking out behind), swung forward, or raised in a happy flap
-const FLIPPER: Record<'down' | 'back' | 'fwd' | 'up', [number, string[]]> = {
+// The near flipper, laid over the body from a row: hanging down, held out a
+// little for balance while it waddles, or raised in a happy flap
+const FLIPPER: Record<'down' | 'out' | 'up', [number, string[]]> = {
   down: [8, ['......EEE.', '.....EkkkE', '.....EkkkE', '.....EkkE.', '.....EkE..', '......E...']],
-  back: [8, ['.......EEE', '.....EEkkkE', '...EEkkkkE.', '.EEkkkkEE..', 'EkkkEEE....', '.EE........']],
-  fwd: [8, ['.....EEE..', '....EkkkE.', '.....EkkkE', '......EkkE', '.......EkE', '........E.']],
+  out: [8, ['......EEE.', '.....EkkkEE', '.....EkkkkE', '.....EkkEE.', '.....EkE...', '......E....']],
   up: [3, ['EE........', 'EkEE......', '.EkkEE....', '..EkkkEE..', '...EEkkkE.', '.....EEEE.']],
 }
+
+// Walking, seen from the side: upright, bobbing up a pixel on each step with
+// one foot lifted, then settling back with both down; the feet take turns
+// (the step changes with every other column it moves)
 
 // Belly-sliding, flippers back and feet trailing; padded to the full height
 const SLIDE = [
   ...Array<string>(H - 8).fill('.'.repeat(W)),
-  '........EEEEE.....',
-  '.....EEEKKKKKE....',
-  '...EEKKKKKKWWWE...',
-  '..EKKKKKKKWWEwWEE.',
-  '.EKKkkkkkKWWEEWYYE',
-  'EEEkkkkkEWWWWWWYE.',
-  'EYYEEEEEWWWWWWWE..',
-  '.EEEEEEEEEEEEEE...',
+  '........EEEEE......',
+  '.....EEEKKKKKE.....',
+  '...EEKKKKKKWWWE....',
+  '..EKKKKKKKWWEwWEE..',
+  '.EKKkkkkkKWWEEWYYE.',
+  'EEEkkkkkEWWWWWWYE..',
+  'EYYEEEEEWWWWWWWE...',
+  '.EEEEEEEEEEEEEE....',
 ]
 
 // The fish, flat then flicking its tail up, flopping in a lane this wide ahead of the penguin
@@ -77,15 +81,19 @@ function sprite(s: Scene): string[] {
   // Penguins don't jump, they slide on their bellies
   if (s.spin > 0) return mirror(SLIDE, s.dir)
   const legs = s.legs === 'sit' ? 'stand' : s.legs
-  const rows = [...BODY, ...FEET[legs]]
-  const flipper = s.isHappy ? 'up' : legs === 'a' ? 'back' : legs === 'b' ? 'fwd' : 'down'
-  over(rows, ...FLIPPER[flipper])
+  const body = [...BODY]
+  const flipper = s.isHappy ? 'up' : legs === 'stand' ? 'down' : 'out'
+  over(body, ...FLIPPER[flipper])
   if (s.isHappy) {
     // Happy: eyes curved shut, a little blush
-    over(rows, 4, ['............E.....', '..........EWWE....', '............P.....'])
+    over(body, 4, ['............E.....', '..........EWWE....', '............P.....'])
   } else if (s.isAsleep || s.isBlinking) {
-    over(rows, 4, ['...........WW.....'])
+    over(body, 4, ['...........WW.....'])
   }
+  const rows =
+    legs === 'a'
+      ? [...body, ...STEP[Math.floor(s.x / 2) % 2 ? 'near' : 'far']]
+      : ['.'.repeat(W), ...body, ...PLANTED]
   if (!chasing(s)) return mirror(rows, s.dir)
   const fish = FISH[s.legs === 'b' ? 1 : 0] ?? []
   const top = H - fish.length

@@ -151,11 +151,11 @@ test('/buddy snack sends the cat after a mouse', async ($, on) => {
   await desk.unmount()
 })
 
-test('every buddy draws through walking, jumping, its snack, happy and asleep', async ($, on) => {
-  const clock = setUp(on)
-  on('turn.complete', async () => ({ text: '' }))
-  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
-  for (const kind of ['panda', 'dino', 'cat', 'penguin', 'frog', 'ghost']) {
+for (const kind of ['panda', 'dino', 'cat', 'penguin', 'frog', 'ghost', 'crab', 'duck', 'snail', 'forest', 'aurora', 'kathmandu', 'mountains', 'tokyo', 'paris', 'newyork']) {
+  test(`the ${kind} draws through walking, jumping, its snack, happy and asleep`, async ($, on) => {
+    const clock = setUp(on)
+    on('turn.complete', async () => ({ text: '' }))
+    await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
     const draws = async () => {
       for (const surface of ['terminal', 'desktop'] as const) {
         const view = await $.ui.mount({ ...BAND, surface })
@@ -177,10 +177,12 @@ test('every buddy draws through walking, jumping, its snack, happy and asleep', 
     await through(40) // the snack, turning at the edges while chasing
     await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, turnId: 't', reason: 'answer' })
     await through(20) // happy
+    await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 't2', reason: 'error' })
+    await through(5) // upset
     await clock.advance(61_000)
     await draws() // asleep
-  }
-})
+  })
+}
 
 test('the frog\'s fly stays about, even when it is interrupted, until the frog catches it', async ($, on) => {
   const clock = setUp(on)
@@ -198,4 +200,11 @@ test('the frog\'s fly stays about, even when it is interrupted, until the frog c
     await term.unmount()
   }
   expect(caught).toBe(true)
+})
+
+test('a city can be picked by its two-word name, and is called by its name', async ($, on) => {
+  setUp(on)
+  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+  expect((await $.command.run({ command: 'buddy', args: 'new york', ...RUN })).text).toBe('Your buddy is now New York.')
+  expect((await $.command.run({ command: 'buddy', args: 'panda', ...RUN })).text).toBe('Your buddy is now the panda.')
 })

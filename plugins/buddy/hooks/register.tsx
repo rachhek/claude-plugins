@@ -2,21 +2,37 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Critter, Kind, Legs, Scene } from '../types'
+import { aurora } from './aurora'
 import { cat } from './cat'
+import { crab } from './crab'
 import { dino } from './dino'
+import { duck } from './duck'
+import { forest } from './forest'
 import { frog } from './frog'
 import { ghost } from './ghost'
+import { kathmandu } from './kathmandu'
+import { mountains } from './mountains'
+import { newyork } from './newyork'
 import { panda } from './panda'
+import { paris } from './paris'
 import { penguin } from './penguin'
+import { snail } from './snail'
+import { tokyo } from './tokyo'
 import { APPROACH, pick, runs } from './shared'
 import type { Character } from './shared'
 
-// A pixel buddy that lives in the band above the prompt: a panda, a dino, a cat, a penguin, a frog or a ghost.
+// A pixel buddy that lives in the band above the prompt: a panda, a dino, a cat, a penguin, a frog, a ghost,
+// a crab, a rubber duck, a snail, or a whole scene: a little forest, the northern
+// lights, a mountain range, or a city skyline (Kathmandu, Tokyo, Paris, New York).
 // It wanders when idle, jumps when you send a message, runs while Claude
 // works, puts its shades on when Claude is done, and naps when nothing has
 // happened for a while. /buddy picks which one.
 
-const CHARACTERS: Record<Kind, Character> = { dino, panda, cat, penguin, frog, ghost }
+const CHARACTERS: Record<Kind, Character> = { dino, panda, cat, penguin, frog, ghost, crab, duck, snail, forest, aurora, kathmandu, mountains, tokyo, paris, newyork }
+// What to call it: "the panda", but a scene by its name ("Kathmandu", "New York")
+const nameOf = (k: Kind) =>
+  CHARACTERS[k].width > 0 ? `the ${k}` : k === 'newyork' ? 'New York' : k.charAt(0).toUpperCase() + k.slice(1)
+
 const isKind = (k: unknown): k is Kind => typeof k === 'string' && Object.hasOwn(CHARACTERS, k)
 
 // ---------------------------------------------------------------- state
@@ -28,6 +44,9 @@ const INITIAL: Scene = {
   spin: 0,
   snack: 0,
   critter: null,
+  tick: 0,
+  isWorking: false,
+  isUpset: false,
   legs: 'stand',
   isAsleep: false,
   isBlinking: false,
@@ -58,6 +77,7 @@ let walkTicks = 20
 let pauseTicks = 0
 let munching = false
 let happyTicks = 0
+let upsetTicks = 0
 let nextBlink = 30
 let bubble: string | null = null
 let bubbleTicks = 0
@@ -114,6 +134,7 @@ function tryCatch(onGround: boolean) {
 }
 
 function say(text: string, ticks = 30) {
+  if (me().width === 0) return // a whole-band scene, like the forest, doesn't talk
   bubble = text.slice(0, 18)
   bubbleTicks = ticks
 }
@@ -152,8 +173,10 @@ function step(): Scene {
   } else if (asleep) {
     munching = false
     legs = 'sit'
-    bubble = ['z', 'zZ', 'zZz'][Math.floor(tick / 8) % 3] ?? 'z'
-    bubbleTicks = 2
+    if (me().width > 0) {
+      bubble = ['z', 'zZ', 'zZz'][Math.floor(tick / 8) % 3] ?? 'z'
+      bubbleTicks = 2
+    }
   } else if (pauseTicks > 0) {
     pauseTicks -= 1
     if (munching && me().chases && snackTicks < APPROACH) {
@@ -219,6 +242,7 @@ function step(): Scene {
   }
 
   if (happyTicks > 0) happyTicks -= 1
+  if (upsetTicks > 0) upsetTicks -= 1
   if (bubbleTicks > 0) bubbleTicks -= 1
   else bubble = null
 
@@ -239,6 +263,9 @@ function step(): Scene {
     bubble,
     ground,
     critter: critter && { ...critter, x: Math.round(critter.x), row: Math.round(critter.row) },
+    tick,
+    isWorking: working,
+    isUpset: upsetTicks > 0,
   }
 }
 
@@ -269,7 +296,7 @@ async function setHidden($: EngineInterface, hide: boolean) {
 // ---------------------------------------------------------------- hooks
 
 const PERSON_ORIGINS = new Set(['composer', 'bridge', 'sdk', 'unclassified'])
-const USAGE = 'Usage: /buddy [panda | dino | cat | penguin | frog | ghost | on | off | jump | snack]'
+const USAGE = 'Usage: /buddy [panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | aurora | kathmandu | mountains | tokyo | paris | newyork | on | off | jump | snack]'
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -286,8 +313,8 @@ export const register: Register = on => {
     try {
       await $.command.register({
         name: 'buddy',
-        description: 'Pick your buddy (panda, dino, cat, penguin, frog or ghost), or show, hide or poke it',
-        argumentHint: '[panda | dino | cat | penguin | frog | ghost | on | off | jump | snack]',
+        description: 'Pick your buddy (panda, dino, cat, penguin, frog, ghost, crab, duck, snail, forest, aurora, mountains, or a city: kathmandu, tokyo, paris, newyork), or show, hide or poke it',
+        argumentHint: '[panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | aurora | kathmandu | mountains | tokyo | paris | newyork | on | off | jump | snack]',
         immediate: true,
       })
     } catch {
@@ -303,11 +330,11 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'buddy' }, async ($, e) => {
-    const arg = (e.args ?? '').trim().toLowerCase()
+    const arg = (e.args ?? '').trim().toLowerCase().replace(/\s+(?=york$)/, '')
 
     if (isKind(arg)) {
       await choose($, arg)
-      return { text: `Your buddy is now the ${arg}.` }
+      return { text: `Your buddy is now ${nameOf(arg)}.` }
     }
     if (arg === 'off' || arg === 'hide') {
       await setHidden($, true)
@@ -316,7 +343,7 @@ export const register: Register = on => {
     if (arg === 'on' || arg === 'show') {
       await setHidden($, false)
       hello()
-      return { text: `Your ${kind} is back!` }
+      return { text: `${nameOf(kind).replace(/^the /, 'Your ')} is back!` }
     }
     if (arg === 'jump') {
       wake()
@@ -331,7 +358,7 @@ export const register: Register = on => {
         wake()
         return {}
       }
-      if (!me().canMunch) return { text: `The ${kind} isn't hungry. Try another buddy.` }
+      if (!me().canMunch) return { text: `${nameOf(kind).replace(/^the /, 'The ')} isn't hungry. Try another buddy.` }
       wake()
       munching = true
       pauseTicks = 80
@@ -343,14 +370,14 @@ export const register: Register = on => {
     // No argument: ask which buddy, in Claude Code's own question dialog
     let answer = ''
     try {
-      answer = await $.ui.ask('Pick your buddy', ['Panda', 'Dino', 'Cat', 'Penguin', 'Frog', 'Ghost', 'Hide it'])
+      answer = await $.ui.ask('Pick your buddy', ['Panda', 'Dino', 'Cat', 'Penguin', 'Frog', 'Ghost', 'Crab', 'Duck', 'Snail', 'Forest', 'Aurora', 'Kathmandu', 'Mountains', 'Tokyo', 'Paris', 'New York', 'Hide it'])
     } catch {
       return { text: USAGE }
     }
-    const picked = answer.trim().toLowerCase()
+    const picked = answer.trim().toLowerCase().replace(/\s+/g, '')
     if (isKind(picked)) {
       await choose($, picked)
-      return { text: `Your buddy is now the ${picked}.` }
+      return { text: `Your buddy is now ${nameOf(picked)}.` }
     }
     if (picked.startsWith('hide')) {
       await setHidden($, true)
@@ -387,8 +414,10 @@ export const register: Register = on => {
     wake()
     working = false
     if (e.isAborted) {
+      upsetTicks = 30
       say(me().lines.abort)
     } else if ('reason' in e && e.reason === 'error') {
+      upsetTicks = 30
       say(me().lines.error)
     } else {
       jumps = [...JUMP, ...JUMP]

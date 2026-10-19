@@ -12,7 +12,7 @@ export type Critter = {
   age: number
 }
 
-export type Kind = 'panda' | 'dino' | 'cat' | 'penguin' | 'frog' | 'ghost'
+export type Kind = 'panda' | 'dino' | 'cat' | 'penguin' | 'frog' | 'ghost' | 'crab' | 'duck' | 'snail' | 'forest' | 'aurora' | 'kathmandu' | 'mountains' | 'tokyo' | 'paris' | 'newyork'
 
 export type Scene = {
   /** Column of the buddy's left edge */
@@ -27,6 +27,12 @@ export type Scene = {
   snack: number
   /** The critter loose in the band for it to catch, if any */
   critter: Critter | null
+  /** Ticks since the session started (ten a second), for ambient animation */
+  tick: number
+  /** Claude is working on a turn */
+  isWorking: boolean
+  /** Something just went wrong (an error or an interrupted turn), for a few seconds */
+  isUpset: boolean
   legs: Legs
   isAsleep: boolean
   isBlinking: boolean

@@ -1,8 +1,8 @@
 {
   "name": "buddy",
   "displayName": "Buddy",
-  "version": "0.13.0",
-  "description": "A pixel buddy above your prompt (panda, dino, cat, penguin, frog or ghost) that jumps at your messages, runs while Claude works and naps when you're away",
+  "version": "0.14.0",
+  "description": "A pixel buddy above your prompt (panda, dino, cat, penguin, frog, ghost, crab, duck, snail, or a whole scene: a forest, the northern lights, a mountain range, or Kathmandu, Tokyo, Paris or New York) that jumps at your messages, runs while Claude works and naps when you're away",
   "author": { "name": "Rachhek Shrestha", "url": "https://rachhek.net" },
   "homepage": "https://github.com/rachhek/claude-plugins/tree/main/plugins/buddy",
   "repository": "https://github.com/rachhek/claude-plugins",
