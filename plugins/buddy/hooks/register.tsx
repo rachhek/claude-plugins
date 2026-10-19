@@ -2,17 +2,20 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Kind, Legs, Scene } from '../types'
+import { cat } from './cat'
 import { dino } from './dino'
 import { panda } from './panda'
+import { panda2 } from './panda2'
 import { pick, runs } from './shared'
 import type { Character } from './shared'
 
-// A pixel buddy that lives in the band above the prompt: a dino or a panda.
+// A pixel buddy that lives in the band above the prompt: a dino, a panda, a baby panda or a cat.
 // It wanders when idle, jumps when you send a message, runs while Claude
 // works, puts its shades on when Claude is done, and naps when nothing has
 // happened for a while. /buddy picks which one.
 
-const CHARACTERS: Record<Kind, Character> = { dino, panda }
+const CHARACTERS: Record<Kind, Character> = { dino, panda, panda2, cat }
+const isKind = (k: unknown): k is Kind => typeof k === 'string' && Object.hasOwn(CHARACTERS, k)
 
 // ---------------------------------------------------------------- state
 
@@ -36,14 +39,6 @@ const isHidden = atom({ plugin: 'buddy', key: 'isHidden' } as const, false)
 
 // The physics lives in module variables and is copied into $.state on each tick
 let kind: Kind = 'dino'
-// How tall the buddy may be in the terminal, in pixel rows (two per text row)
-// Pixel rows the buddy may use in the terminal, two per text row
-const TERM_ROWS = 18
-// Whether the terminal draws the buddy as a real picture: on, off, or auto
-// (on in terminals known to draw pictures: kitty, Ghostty, WezTerm)
-type Hd = 'auto' | 'on' | 'off'
-let hd: Hd = 'auto'
-let terminalDrawsPictures = false
 let x = INITIAL.x
 let dir: 1 | -1 = 1
 let ground = 0
@@ -162,15 +157,11 @@ function step(): Scene {
 // Load what earlier sessions saved: which buddy, and whether it's hidden
 async function loadSaved($: EngineInterface) {
   const savedKind = await $.store.get('kind')
-  if (savedKind === 'dino' || savedKind === 'panda') kind = savedKind
+  if (isKind(savedKind)) kind = savedKind
   await update($, kindAtom, () => kind)
   const savedHidden = await $.store.get('isHidden')
   await update($, isHidden, () => savedHidden === true)
-  const savedHd = await $.store.get('hd')
-  if (savedHd === 'auto' || savedHd === 'on' || savedHd === 'off') hd = savedHd
 }
-
-const useHd = () => hd === 'on' || (hd === 'auto' && terminalDrawsPictures)
 
 async function choose($: EngineInterface, next: Kind) {
   kind = next
@@ -189,17 +180,11 @@ async function setHidden($: EngineInterface, hide: boolean) {
 // ---------------------------------------------------------------- hooks
 
 const PERSON_ORIGINS = new Set(['composer', 'bridge', 'sdk', 'unclassified'])
-const USAGE = 'Usage: /buddy [dino | panda | on | off | jump | snack | hd on|off|auto]'
+const USAGE = 'Usage: /buddy [dino | panda | panda2 | cat | on | off | jump | snack]'
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await loadSaved($)
-    try {
-      const term = `${(await $.env.get('TERM')) ?? ''} ${(await $.env.get('TERM_PROGRAM')) ?? ''}`
-      terminalDrawsPictures = /kitty|ghostty|wezterm/i.test(term)
-    } catch {
-      // The environment is off limits here; stay with half blocks
-    }
     hello()
     // Ten frames a second, written to $.state only when the picture changes
     $.clock.every(TICK_MS, () => {
@@ -212,8 +197,8 @@ export const register: Register = on => {
     try {
       await $.command.register({
         name: 'buddy',
-        description: 'Pick your buddy (dino or panda), or show, hide or poke it',
-        argumentHint: '[dino | panda | on | off | jump | snack | hd <on|off|auto>]',
+        description: 'Pick your buddy (dino, panda, panda2 or cat), or show, hide or poke it',
+        argumentHint: '[dino | panda | panda2 | cat | on | off | jump | snack]',
         immediate: true,
       })
     } catch {
@@ -231,7 +216,7 @@ export const register: Register = on => {
   on('command.run', { command: 'buddy' }, async ($, e) => {
     const arg = (e.args ?? '').trim().toLowerCase()
 
-    if (arg === 'dino' || arg === 'panda') {
+    if (isKind(arg)) {
       await choose($, arg)
       return { text: `Your buddy is now the ${arg}.` }
     }
@@ -251,37 +236,24 @@ export const register: Register = on => {
       return {}
     }
     if (arg === 'snack') {
-      if (!me().canMunch) return { text: `The ${kind} isn't hungry. Try /buddy panda.` }
+      if (!me().canMunch) return { text: `The ${kind} isn't hungry. Try /buddy panda or /buddy cat.` }
       wake()
       munching = true
       pauseTicks = 80
       say(pick(me().lines.snack))
       return {}
     }
-    if (arg.startsWith('hd')) {
-      const want = arg.slice(2).trim()
-      if (want !== 'on' && want !== 'off' && want !== 'auto') {
-        const state = hd === 'auto' ? (terminalDrawsPictures ? 'auto, on here' : 'auto, off here') : hd
-        return {
-          text: `Buddy hd is ${state}. Usage: /buddy hd on|off|auto. On draws the buddy as a real picture, which kitty, Ghostty and WezTerm can show; in other terminals only its name appears, so turn it off again there.`,
-        }
-      }
-      hd = want
-      await $.store.set('hd', want)
-      $.ui.invalidate('ui.render')
-      return { text: `Buddy hd: ${want}.` }
-    }
     if (arg !== '') return { text: USAGE }
 
     // No argument: ask which buddy, in Claude Code's own question dialog
     let answer = ''
     try {
-      answer = await $.ui.ask('Pick your buddy', ['Dino', 'Panda', 'Hide it'])
+      answer = await $.ui.ask('Pick your buddy', ['Dino', 'Panda', 'Panda2', 'Cat', 'Hide it'])
     } catch {
       return { text: USAGE }
     }
     const picked = answer.trim().toLowerCase()
-    if (picked === 'dino' || picked === 'panda') {
+    if (isKind(picked)) {
       await choose($, picked)
       return { text: `Your buddy is now the ${picked}.` }
     }
@@ -346,38 +318,9 @@ export const register: Register = on => {
       const { Svg } = $.ui.resolve(e)
       ours = <Svg source={who.svg(at, cols)} alt={s.bubble ? `Your buddy says: ${s.bubble}` : 'Your buddy'} />
     } else {
-      const { Box, Text, Image } = $.ui.resolve(e)
-      // Pixel rows the buddy may use, within the band's rows
-      // less one for the ground
-      const rows = Math.max(8, Math.min(TERM_ROWS, (e.props.maxRows - 1) * 2))
-      const drawing = who.terminal(at, cols, rows, useHd())
-      const ground = (
-        <Text color={drawing.groundColor} dimColor wrap="truncate">
-          {drawing.ground}
-        </Text>
-      )
-      if (drawing.image) {
-        // A real picture, with the speech bubble on its own row above it.
-        // The row is always there so the picture never shifts
-        const img = drawing.image
-        ours = (
-          <Box flexDirection="column">
-            <Box flexDirection="row" paddingLeft={x}>
-              <Text italic wrap="truncate">{s.bubble ? `‹${s.bubble}›` : ' '}</Text>
-            </Box>
-            <Box flexDirection="row" paddingLeft={x}>
-              <Image
-                key="buddy"
-                source={{ rgba: img.rgba, width: img.width, height: img.height }}
-                columns={img.columns}
-                rows={img.rows}
-                alt={`a pixel ${kind}`}
-              />
-            </Box>
-            {ground}
-          </Box>
-        )
-      } else {
+      const { Box, Text } = $.ui.resolve(e)
+      // Pixel rows the band has room for, less one text row for the ground
+      const drawing = who.terminal(at, cols, (e.props.maxRows - 1) * 2)
       const lines = drawing.rows.map((row, i) => {
         const sprite = runs(row).map((run, j) =>
           run.fg ? (
@@ -425,10 +368,11 @@ export const register: Register = on => {
       ours = (
         <Box flexDirection="column">
           {lines}
-          {ground}
+          <Text color={drawing.groundColor} dimColor wrap="truncate">
+            {drawing.ground}
+          </Text>
         </Box>
       )
-      }
     }
 
     // Keep whatever other mods draw in the band, below the buddy

@@ -6,7 +6,7 @@
     {
       "name": "buddy",
       "source": "./plugins/buddy",
-      "description": "A pixel buddy above your prompt (dino or panda) that jumps at your messages, runs while Claude works and naps when you're away"
+      "description": "A pixel buddy above your prompt (dino, panda or cat) that jumps at your messages, runs while Claude works and naps when you're away"
     }
   ]
 }

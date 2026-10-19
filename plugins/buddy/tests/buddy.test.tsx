@@ -16,10 +16,9 @@ const BAND = {
 
 const RUN = { origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } } as const
 
-const setUp = (on: On, env: Record<string, string> = { TERM: 'xterm-256color' }) => {
+const setUp = (on: On) => {
   const clock = mock.clock(on)
   mock.store(on)
-  mock.env(on, env)
   on('prompt.submit', async (_$, e) => ({ text: e.text }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('command.run', async () => ({}))
@@ -72,22 +71,42 @@ test('/buddy off hides it', async ($, on) => {
   await term.unmount()
 })
 
-test('in a terminal that draws pictures, the panda is a real image', async ($, on) => {
-  const clock = setUp(on, { TERM: 'xterm-ghostty', TERM_PROGRAM: 'ghostty' })
+test('the panda is drawn as text blocks, never a picture', async ($, on) => {
+  const clock = setUp(on)
   await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
   await $.command.run({ command: 'buddy', args: 'panda', ...RUN })
   await clock.advance(300)
 
   const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await term.find({ type: 'Image' })).toBeDefined()
-  expect(await term.find({ type: 'Text', text: /[█▀▄]/ })).toBeUndefined()
+  expect(await term.find({ type: 'Image' })).toBeUndefined()
+  expect(await term.find({ type: 'Text', text: /[█▀▄]/ })).toBeDefined()
+  await term.unmount()
+})
+
+test('/buddy cat switches to the cat; unknown names are refused', async ($, on) => {
+  const clock = setUp(on)
+  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'buddy', args: 'cat', ...RUN })
+  await clock.advance(300)
+
+  const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await term.find({ type: 'Text', text: /mrrp/ })).toBeDefined()
+  expect(await term.find({ type: 'Text', text: /[█▀▄]/ })).toBeDefined()
   await term.unmount()
 
-  // /buddy hd off goes back to half blocks
-  await $.command.run({ command: 'buddy', args: 'hd off', ...RUN })
+  // An inherited object key is not a buddy
+  const res = await $.command.run({ command: 'buddy', args: 'constructor', ...RUN })
+  expect(res.text).toMatch(/Usage/)
+})
+
+test('/buddy panda2 switches to the baby panda', async ($, on) => {
+  const clock = setUp(on)
+  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'buddy', args: 'panda2', ...RUN })
   await clock.advance(300)
-  const plain = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await plain.find({ type: 'Image' })).toBeUndefined()
-  expect(await plain.find({ type: 'Text', text: /[█▀▄]/ })).toBeDefined()
-  await plain.unmount()
+
+  const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await term.find({ type: 'Text', text: /hi hi!/ })).toBeDefined()
+  expect(await term.find({ type: 'Text', text: /[█▀▄]/ })).toBeDefined()
+  await term.unmount()
 })

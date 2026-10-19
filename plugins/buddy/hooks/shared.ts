@@ -7,8 +7,8 @@ export type Character = {
   width: number
   /** Whether it sits down for a snack when idle */
   canMunch: boolean
-  /** Draw for the terminal, in `cols` columns and up to `rows` pixel rows (two per text row) */
-  terminal: (s: Scene, cols: number, rows: number, hd: boolean) => TerminalDrawing
+  /** Draw for the terminal, in `cols` columns and at most `rows` pixel rows (two per text row) */
+  terminal: (s: Scene, cols: number, rows: number) => TerminalDrawing
   svg: (s: Scene, cols: number) => string
   lines: {
     hi: string
@@ -27,8 +27,6 @@ export type TerminalDrawing = {
   rows: Cell[][]
   ground: string
   groundColor: string
-  /** A real picture in place of the rows, for a terminal that can draw one */
-  image?: { rgba: string; width: number; height: number; columns: number; rows: number }
 }
 
 export const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(Math.random() * xs.length)] as T
@@ -143,124 +141,3 @@ export function shadowSvg(s: Scene, ox: number, size: number, groundY: number, p
 
 export const svgOpen = (w: number, h: number) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges">`
-
-// ---------------------------------------------------------------- smooth shrinking
-
-function hexToRgb(hex: string): [number, number, number] {
-  const n = parseInt(hex.slice(1), 16)
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
-}
-
-function rgbToHex(r: number, g: number, b: number): string {
-  // Snap to 16 levels per channel so neighbouring cells share colours and merge
-  const q = (v: number) => Math.min(255, Math.max(0, Math.round(v / 17) * 17))
-  return '#' + [q(r), q(g), q(b)].map(v => v.toString(16).padStart(2, '0')).join('')
-}
-
-/**
- * Shrink (or grow) a sprite to `outW` by `outH` pixels, blending the colours
- * each output pixel covers, so edges come out smooth instead of jagged. A
- * pixel that is mostly transparent stays transparent (null).
- */
-export function smoothResize(sprite: string[], colours: Record<string, string>, outW: number, outH: number): (string | null)[][] {
-  const H = sprite.length
-  const W = sprite[0]?.length ?? 0
-  const rgb = new Map<string, [number, number, number]>()
-  for (const [k, v] of Object.entries(colours)) rgb.set(k, hexToRgb(v))
-  const out: (string | null)[][] = []
-  for (let y = 0; y < outH; y++) {
-    const row: (string | null)[] = []
-    const sy0 = (y * H) / outH
-    const sy1 = ((y + 1) * H) / outH
-    for (let x = 0; x < outW; x++) {
-      const sx0 = (x * W) / outW
-      const sx1 = ((x + 1) * W) / outW
-      let r = 0
-      let g = 0
-      let b = 0
-      let opaque = 0
-      let total = 0
-      for (let sy = Math.floor(sy0); sy < Math.ceil(sy1); sy++) {
-        const wy = Math.min(sy + 1, sy1) - Math.max(sy, sy0)
-        for (let sx = Math.floor(sx0); sx < Math.ceil(sx1); sx++) {
-          const wx = Math.min(sx + 1, sx1) - Math.max(sx, sx0)
-          const w = wx * wy
-          total += w
-          const c = rgb.get(sprite[sy]?.[sx] ?? '.')
-          if (!c) continue
-          opaque += w
-          r += c[0] * w
-          g += c[1] * w
-          b += c[2] * w
-        }
-      }
-      row.push(opaque / total < 0.5 ? null : rgbToHex(r / opaque, g / opaque, b / opaque))
-    }
-    out.push(row)
-  }
-  return out
-}
-
-/** Build half-block cells from a grid of pixel colours, placed `top` rows down in a canvas */
-export function halfBlocksFromPixels(px: (string | null)[][], top: number, width: number, pixelRows: number): Cell[][] {
-  const at = (r: number, c: number): string => {
-    const sr = r - top
-    return sr >= 0 && sr < px.length ? (px[sr]?.[c] ?? '') : ''
-  }
-  const rows: Cell[][] = []
-  for (let k = 0; k < pixelRows / 2; k++) {
-    const row: Cell[] = []
-    for (let c = 0; c < width; c++) {
-      const t = at(2 * k, c)
-      const b = at(2 * k + 1, c)
-      if (!t && !b) row.push({ ch: ' ' })
-      else if (t && !b) row.push({ ch: '▀', fg: t })
-      else if (!t && b) row.push({ ch: '▄', fg: b })
-      else if (t === b) row.push({ ch: '█', fg: t })
-      else row.push({ ch: '▀', fg: t, bg: b })
-    }
-    rows.push(row)
-  }
-  return rows
-}
-
-/** The sprite as RGBA pixels, each art pixel a `factor` by `factor` block, base64 */
-export function spriteToRgba(sprite: string[], colours: Record<string, string>, factor: number): { rgba: string; width: number; height: number } {
-  const H = sprite.length
-  const W = sprite[0]?.length ?? 0
-  const width = W * factor
-  const height = H * factor
-  const bytes = new Uint8Array(width * height * 4)
-  const rgb = new Map<string, [number, number, number]>()
-  for (const [k, v] of Object.entries(colours)) rgb.set(k, hexToRgb(v))
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      const c = rgb.get(sprite[y]?.[x] ?? '.')
-      if (!c) continue
-      for (let dy = 0; dy < factor; dy++)
-        for (let dx = 0; dx < factor; dx++) {
-          const i = ((y * factor + dy) * width + x * factor + dx) * 4
-          bytes[i] = c[0]
-          bytes[i + 1] = c[1]
-          bytes[i + 2] = c[2]
-          bytes[i + 3] = 255
-        }
-    }
-  return { rgba: base64(bytes), width, height }
-}
-
-const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-
-function base64(bytes: Uint8Array): string {
-  let out = ''
-  for (let i = 0; i < bytes.length; i += 3) {
-    const a = bytes[i] ?? 0
-    const b = bytes[i + 1]
-    const c = bytes[i + 2]
-    const n = (a << 16) | ((b ?? 0) << 8) | (c ?? 0)
-    out += B64[(n >> 18) & 63]! + B64[(n >> 12) & 63]!
-    out += b === undefined ? '=' : B64[(n >> 6) & 63]!
-    out += c === undefined ? '=' : B64[n & 63]!
-  }
-  return out
-}

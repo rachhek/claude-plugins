@@ -1,33 +1,35 @@
 import type { Scene } from '../types'
-import { bubbleSvg, halfBlocksFromPixels, mirror, outline, pick, pixels, put, shadowSvg, smoothResize, spriteToRgba, svgOpen } from './shared'
+import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, svgOpen } from './shared'
 import type { Character } from './shared'
 
-// The panda: pixel art for sitting and walking (art/panda.png), facing right. Blinking, shades, chewing and the bamboo are
-// drawn over the sitting sprite in code; the art itself is used as is.
+// The panda: pixel art for sitting and walking, facing right, drawn one art
+// pixel to one half block in the terminal (never resized, so it stays crisp)
+// and as pixels on the desktop. Blinking, chewing and the bamboo are drawn
+// over the sitting sprite in code.
 //
-// Pixels: E outline and eyes, K dark fur, k lighter dark fur, W white fur,
-// S shaded white fur, w eye glint, L closed-eye line, B shades, R open
-// mouth, G bamboo, g bamboo leaf
-type Pose = { w: number; h: number; sprite: string[] }
+// Pixels: E outline and eyes, K dark fur, k lighter dark fur (far legs),
+// W white fur, S shaded white fur, w eye glint, L closed-eye line, R open mouth,
+// G bamboo, g bamboo leaf
+export type Pose = { w: number; h: number; sprite: string[] }
 
 const SIT = [
-  '...KKK.....KKK...',
-  '..KKKKEWWWEKKKK..',
-  '..KKKSWWWWWWKKK..',
-  '..KKWWWWWWWWWKK..',
-  '...WWWWWWWWWWW...',
-  '..KWSkkWWWkkSWK..',
-  '..KWkEEWWWEEkWK..',
-  '..KWWkWKKKWkWWK..',
-  '...EWWWWEWWWWE...',
-  '...KKEWWWWWWKK...',
-  '..EKKEEEEEEEKKE..',
-  '..EKKKWWWWWKKKE..',
-  '.EEkKKEWWWEKKKEE.',
-  'KKKWKEEWWWEEESKKK',
-  'EKKESWWWWWWWSEKKK',
-  'KKKEEWWWWWWWEEKKK',
-  '.EEEEESSSSSEEEEE.',
+  '..EEE.......EEE..',
+  '.EKKKE.....EKKKE.',
+  '.EKKKKEEEEEKKKKE.',
+  '..EKKWWWWWWWKKE..',
+  '.EWWKKKWWWKKKWWE.',
+  '.EWKEwKWWWKEwKWE.',
+  'EWKKEEKWWWKEEKKWE',
+  'EWKKKWWKKKWWKKKWE',
+  '.EWWWWWWEWWWWWWE.',
+  '..EEWWWWWWWWWEE..',
+  '.EKKEEEEEEEEEKKE.',
+  '.EKKKEWWWWWEKKKE.',
+  '.EKKKKEWWWEKKKKE.',
+  'EKKEKKEWWWEKKEKKE',
+  'EKKKEWWWWWWWEKKKE',
+  'EKKKESSSSSSSEKKKE',
+  '.EEEEEEEEEEEEEEE.',
 ]
 const SIT_W = SIT[0]?.length ?? 0
 const SIT_H = SIT.length
@@ -38,11 +40,11 @@ function sitting(s: Scene): Pose {
     for (let c = c0; c <= c1; c++) put(rows, r, c, ch)
   }
   if (s.isAsleep || s.isBlinking) {
-    // A lighter line across each eye patch
-    set(5, 4, 6, 'K')
-    set(5, 10, 12, 'K')
-    set(6, 4, 6, 'L')
-    set(6, 10, 12, 'L')
+    // Each eye a lighter line in its patch
+    set(5, 4, 5, 'K')
+    set(5, 11, 12, 'K')
+    set(6, 4, 5, 'L')
+    set(6, 11, 12, 'L')
   }
   if (s.chew) set(8, 7, 9, 'R')
   if (s.isMunching) {
@@ -59,44 +61,44 @@ function sitting(s: Scene): Pose {
   return { w: SIT_W, h: SIT_H, sprite: rows }
 }
 
-// The walking panda is pixel art too (art/walk.png), facing right; the
-// second step is the first with its legs moved
+// The walking panda, facing right. One step shows all four legs apart, the
+// far ones a shade lighter; the next shows only the near two, hiding the far
 const WALK = [
   [
-    '..................KKK..',
-    '............KKKK..KKK..',
-    '...........EKKKKEWWKKK.',
-    '.....EEEEEEEKKKWWWWWKK.',
-    '...EKWWWWWWEKKWWWWWWWK.',
-    '..KWWWWWWWWKEWWWWkkWWW.',
-    'EKKWWWWWWWKKEWWWkkEEWW.',
-    'EKKWWWWWWWKKEWWWkkEEWKE',
-    '.KWWWWWWWWKKKKWWkkkWWWE',
-    '..KKKWWWWWKKKKWWWkkWWW.',
-    '..KKKWWWWWSKKKKWWWWWWE.',
-    '.KKKKKSSSSSKKKKKKWWW...',
-    '.KKKKKKK..KEKKKKKSS....',
-    'EKKKKEEE..EEEKKKK......',
-    'EKKKEEEEE.KEE.KKKKK....',
-    'EEEE.EEEE..KKK.KKKK....',
+    '..............EEE..EEE.',
+    '.............EKKKEEKKKE',
+    '.............EKKWWWWKKE',
+    '....EEEEEEEEEWWWWWWWWWE',
+    '...EWWWWWWKKKKWWWKKKWWE',
+    '..EWWWWWWWKKKKWWKEwKWWE',
+    '..EWWWWWWWKKKKWKKEEKWKE',
+    '.EWWWWWWWWKKKKKWKKKWWE.',
+    '.EWWWWWWWWKKKKKKWWWWE..',
+    'EKWWWWWWWSKKKKKKEEEE...',
+    '.EWWWWWWSSKKKKKKE......',
+    '..EKKKSSSKKKKKKE.......',
+    'EKKKEkkkEkkkEKKKE......',
+    'EKKKEkkkEkkkEKKKE......',
+    'EKKKEkkkEkkkEKKKE......',
+    '.EEE.EEE.EEE.EEE.......',
   ],
   [
-    '..................KKK..',
-    '............KKKK..KKK..',
-    '...........EKKKKEWWKKK.',
-    '.....EEEEEEEKKKWWWWWKK.',
-    '...EKWWWWWWEKKWWWWWWWK.',
-    '..KWWWWWWWWKEWWWWkkWWW.',
-    'EKKWWWWWWWKKEWWWkkEEWW.',
-    'EKKWWWWWWWKKEWWWkkEEWKE',
-    '.KWWWWWWWWKKKKWWkkkWWWE',
-    '..KKKWWWWWKKKKWWWkkWWW.',
-    '..KKKWWWWWSKKKKWWWWWWE.',
-    '.KKKKKSSSSSKKKKKKWWW...',
-    '..KKKKKKK..KKKKKSS.....',
-    '.EKKKKEEE..EKKKK.......',
-    '.EKKKEEEEE.E.KKKKK.....',
-    '.EEEE.EEEE.KK.KKKK.....',
+    '..............EEE..EEE.',
+    '.............EKKKEEKKKE',
+    '.............EKKWWWWKKE',
+    '....EEEEEEEEEWWWWWWWWWE',
+    '...EWWWWWWKKKKWWWKKKWWE',
+    '..EWWWWWWWKKKKWWKEwKWWE',
+    '..EWWWWWWWKKKKWKKEEKWKE',
+    '.EWWWWWWWWKKKKKWKKKWWE.',
+    '.EWWWWWWWWKKKKKKWWWWE..',
+    'EKWWWWWWWSKKKKKKEEEE...',
+    '.EWWWWWWSSKKKKKKE......',
+    '..EKKKSSSKKKKKKE.......',
+    '..EKKKKE.EKKKKE........',
+    '..EKKKKE.EKKKKE........',
+    '.EKKKKE...EKKKKE.......',
+    '.EEEEE.....EEEEE.......',
   ],
 ]
 
@@ -114,29 +116,8 @@ function pose(s: Scene): Pose {
 
 // ---------------------------------------------------------------- drawing
 
-const TERM_W = 24 // columns the terminal strip may take
-// The hd picture's canvas: wide enough for the walking pose, tall enough for
-// the sitting one plus the highest jump
-const CANVAS_W = 24
-const CANVAS_H = SIT_H + 4
-
-function onCanvas(sprite: string[], air: number): string[] {
-  const h = sprite.length
-  const w = sprite[0]?.length ?? 0
-  const left = Math.floor((CANVAS_W - w) / 2)
-  const top = CANVAS_H - h - Math.min(air, CANVAS_H - h)
-  const rows: string[] = []
-  for (let r = 0; r < CANVAS_H; r++) {
-    const src = sprite[r - top]
-    if (src === undefined) {
-      rows.push('.'.repeat(CANVAS_W))
-    } else {
-      rows.push('.'.repeat(left) + src + '.'.repeat(CANVAS_W - left - w))
-    }
-  }
-  return rows
-}
-const TERM_MAX_ROWS = 18 // pixel rows at most, two per text row: the art at full size
+const TERM_W = 23 // the walking pose's width; the sitting one is centred in it
+const TERM_ROWS = SIT_H + 5 // pixel rows: the sitting pose, the highest jump and one spare to keep it even
 
 const TERM = {
   E: '#1e2026',
@@ -173,12 +154,11 @@ const SVG = {
 
 const GRASS = ".,..'..,...'.,..,'...,.."
 
-const PX = 2.5 // the unit the sitting height is measured in
-const UNIT = 4 // grass, shadow and speech bubble keep chunkier pixels
+const PX = 6
+const UNIT = 4 // grass, shadow and speech bubble keep their own pixel size
 const CELL = 8
 const LIFT = 5
-const SIT_HEIGHT = 45 // the sitting pose is drawn this many PX tall
-const TALLEST = SIT_HEIGHT + 2 // with its outline
+const AIR = 4
 
 function react(text: string): string {
   const t = text.toLowerCase()
@@ -192,41 +172,22 @@ function react(text: string): string {
   return pick(['on it.', 'yep.', "let's go.", 'bet.', '*nods*'])
 }
 
-export const panda: Character = {
+// Any panda: its poses (at most 23 wide and SIT_H tall) and what it says
+export const pandaWith = (pose: (s: Scene) => Pose, lines: Character['lines']): Character => ({
   width: TERM_W,
   canMunch: true,
 
-  terminal(s, cols, rows, hd) {
+  terminal(s, cols, rows) {
     let ground = ''
     for (let i = 0; i < cols; i++) ground += GRASS[i % GRASS.length]
     const p = pose(s)
-    // As many pixel rows as the band allows, up to the cap; the sitting pose
-    // sets the scale, so the other poses come out in proportion to it
-    const pixelRows = Math.max(8, Math.min(TERM_MAX_ROWS, rows - (rows % 2)))
-    // Draw at full detail, then shrink with colour blending so edges stay smooth
-    const native = p.sprite
-    if (hd) {
-      // A real picture. Every pose is drawn onto the same canvas, feet on the
-      // bottom row, so the picture keeps one size while it changes pose or
-      // jumps; the box of cells holds the canvas at the band's height
-      // (a cell is about half as wide as it is tall)
-      const canvas = onCanvas(mirror(native, s.dir), s.air)
-      const textRows = Math.max(2, Math.round((CANVAS_H / SIT_H) * (pixelRows / 2)))
-      const columns = Math.max(2, Math.round((CANVAS_W / SIT_H) * pixelRows))
-      const factor = 6
-      return {
-        rows: [],
-        ground,
-        groundColor: 'green',
-        image: { ...spriteToRgba(canvas, TERM, factor), columns, rows: textRows },
-      }
-    }
-    const scale = Math.min(pixelRows / SIT_H, TERM_W / p.w, pixelRows / p.h)
-    const px = smoothResize(mirror(native, s.dir), TERM, Math.round(p.w * scale), Math.round(p.h * scale))
-    // Feet on the bottom row, lifted while jumping as far as the band allows
-    const lift = Math.min(s.air, pixelRows - px.length)
+    const pad = '.'.repeat(Math.floor((TERM_W - p.w) / 2))
+    const sp = mirror(p.sprite, s.dir).map(r => pad + r)
+    // As many pixel rows as the band allows, up to the cap; feet on the bottom row
+    const pixelRows = Math.min(TERM_ROWS, rows - (rows % 2))
+    const lift = Math.max(0, Math.min(s.air, pixelRows - p.h))
     return {
-      rows: halfBlocksFromPixels(px, pixelRows - px.length - lift, TERM_W, pixelRows),
+      rows: halfBlocks(sp, pixelRows - p.h - lift, TERM_W, pixelRows, TERM),
       ground,
       groundColor: 'green',
     }
@@ -234,15 +195,14 @@ export const panda: Character = {
 
   svg(s, cols) {
     const p = pose(s)
-    // Every pose is drawn at the pixel size that makes the sitting one SIT_HEIGHT rows tall
-    const px = (SIT_HEIGHT * PX) / SIT_H
     const sp = mirror(p.sprite, s.dir)
     const w = cols * CELL
-    const size = (sp[0]?.length ?? 0) * px
-    const groundY = TALLEST * PX + 4 * LIFT + 2 * UNIT
+    const size = p.w * PX
+    const groundY = (SIT_H + 1) * PX + AIR * LIFT + 2 * UNIT
     const h = groundY + 3 * UNIT
     const ox = s.x * CELL
-    const oy = groundY - sp.length * px + px - s.air * LIFT
+    // The bottom row is the outline, so it sinks one pixel into the ground
+    const oy = groundY - p.h * PX + PX - s.air * LIFT
 
     const grass: string[] = []
     for (let i = 0; i < w; i += 9 * UNIT) {
@@ -259,20 +219,22 @@ export const panda: Character = {
       grass.join('') +
       shadowSvg(s, ox, size, groundY, UNIT) +
       // A faint light rim so the dark outline still reads on a dark background
-      outline(sp, ox, oy, px, '#5d5658') +
-      pixels(sp, ox, oy, px, SVG) +
+      outline(sp, ox, oy, PX, '#5d5658') +
+      pixels(sp, ox, oy, PX, SVG) +
       bubbleSvg(s, ox, oy, size, w, UNIT) +
       `</svg>`
     )
   },
 
-  lines: {
-    hi: 'yo.',
-    jump: 'hup!',
-    done: ['nailed it.', 'done.', 'ez.'],
-    abort: 'k.',
-    error: 'oof.',
-    snack: ['*munch*', 'nom', '*crunch*'],
-    react,
-  },
-}
+  lines,
+})
+
+export const panda = pandaWith(pose, {
+  hi: 'yo.',
+  jump: 'hup!',
+  done: ['nailed it.', 'done.', 'ez.'],
+  abort: 'k.',
+  error: 'oof.',
+  snack: ['*munch*', 'nom', '*crunch*'],
+  react,
+})
