@@ -5,16 +5,15 @@ import type { Kind, Legs, Scene } from '../types'
 import { cat } from './cat'
 import { dino } from './dino'
 import { panda } from './panda'
-import { panda2 } from './panda2'
 import { pick, runs } from './shared'
 import type { Character } from './shared'
 
-// A pixel buddy that lives in the band above the prompt: a dino, a panda, a baby panda or a cat.
+// A pixel buddy that lives in the band above the prompt: a panda, a dino or a cat.
 // It wanders when idle, jumps when you send a message, runs while Claude
 // works, puts its shades on when Claude is done, and naps when nothing has
 // happened for a while. /buddy picks which one.
 
-const CHARACTERS: Record<Kind, Character> = { dino, panda, panda2, cat }
+const CHARACTERS: Record<Kind, Character> = { dino, panda, cat }
 const isKind = (k: unknown): k is Kind => typeof k === 'string' && Object.hasOwn(CHARACTERS, k)
 
 // ---------------------------------------------------------------- state
@@ -34,11 +33,11 @@ const INITIAL: Scene = {
 }
 
 const scene = atom({ plugin: 'buddy', key: 'scene' } as const, INITIAL)
-const kindAtom = atom({ plugin: 'buddy', key: 'kind' } as const, 'dino' as Kind)
+const kindAtom = atom({ plugin: 'buddy', key: 'kind' } as const, 'panda' as Kind)
 const isHidden = atom({ plugin: 'buddy', key: 'isHidden' } as const, false)
 
 // The physics lives in module variables and is copied into $.state on each tick
-let kind: Kind = 'dino'
+let kind: Kind = 'panda'
 let x = INITIAL.x
 let dir: 1 | -1 = 1
 let ground = 0
@@ -180,7 +179,7 @@ async function setHidden($: EngineInterface, hide: boolean) {
 // ---------------------------------------------------------------- hooks
 
 const PERSON_ORIGINS = new Set(['composer', 'bridge', 'sdk', 'unclassified'])
-const USAGE = 'Usage: /buddy [dino | panda | panda2 | cat | on | off | jump | snack]'
+const USAGE = 'Usage: /buddy [panda | dino | cat | on | off | jump | snack]'
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -197,8 +196,8 @@ export const register: Register = on => {
     try {
       await $.command.register({
         name: 'buddy',
-        description: 'Pick your buddy (dino, panda, panda2 or cat), or show, hide or poke it',
-        argumentHint: '[dino | panda | panda2 | cat | on | off | jump | snack]',
+        description: 'Pick your buddy (panda, dino or cat), or show, hide or poke it',
+        argumentHint: '[panda | dino | cat | on | off | jump | snack]',
         immediate: true,
       })
     } catch {
@@ -248,7 +247,7 @@ export const register: Register = on => {
     // No argument: ask which buddy, in Claude Code's own question dialog
     let answer = ''
     try {
-      answer = await $.ui.ask('Pick your buddy', ['Dino', 'Panda', 'Panda2', 'Cat', 'Hide it'])
+      answer = await $.ui.ask('Pick your buddy', ['Panda', 'Dino', 'Cat', 'Hide it'])
     } catch {
       return { text: USAGE }
     }

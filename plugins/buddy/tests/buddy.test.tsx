@@ -27,19 +27,31 @@ const setUp = (on: On) => {
   return clock
 }
 
-test('the dino is the default, drawn as text in the terminal and an SVG on the desktop', async ($, on) => {
+test('the panda is the default, drawn as text in the terminal and an SVG on the desktop', async ($, on) => {
   const clock = setUp(on)
   await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+  await clock.advance(300)
+
+  const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await term.find({ type: 'Text', text: /yo\./ })).toBeDefined()
+  expect(await term.find({ type: 'Text', text: /\.,\.\./ })).toBeDefined()
+  await term.unmount()
+
+  const desk = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await desk.find({ type: 'Svg' })).toBeDefined()
+  await desk.unmount()
+})
+
+test('/buddy dino switches to the dino', async ($, on) => {
+  const clock = setUp(on)
+  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'buddy', args: 'dino', ...RUN })
   await clock.advance(300)
 
   const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await term.find({ type: 'Text', text: /rawr/ })).toBeDefined()
   expect(await term.find({ type: 'Text', text: /____/ })).toBeDefined()
   await term.unmount()
-
-  const desk = await $.ui.mount({ ...BAND, surface: 'desktop' })
-  expect(await desk.find({ type: 'Svg' })).toBeDefined()
-  await desk.unmount()
 })
 
 test('/buddy panda switches to the panda, which reacts in its own words', async ($, on) => {
@@ -97,16 +109,4 @@ test('/buddy cat switches to the cat; unknown names are refused', async ($, on) 
   // An inherited object key is not a buddy
   const res = await $.command.run({ command: 'buddy', args: 'constructor', ...RUN })
   expect(res.text).toMatch(/Usage/)
-})
-
-test('/buddy panda2 switches to the baby panda', async ($, on) => {
-  const clock = setUp(on)
-  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
-  await $.command.run({ command: 'buddy', args: 'panda2', ...RUN })
-  await clock.advance(300)
-
-  const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await term.find({ type: 'Text', text: /hi hi!/ })).toBeDefined()
-  expect(await term.find({ type: 'Text', text: /[█▀▄]/ })).toBeDefined()
-  await term.unmount()
 })

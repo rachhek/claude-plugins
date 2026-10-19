@@ -1,6 +1,6 @@
 export type Legs = 'stand' | 'a' | 'b' | 'sit'
 
-export type Kind = 'dino' | 'panda' | 'panda2' | 'cat'
+export type Kind = 'panda' | 'dino' | 'cat'
 
 export type Scene = {
   /** Column of the buddy's left edge */

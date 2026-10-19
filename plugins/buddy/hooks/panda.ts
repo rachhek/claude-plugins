@@ -10,7 +10,7 @@ import type { Character } from './shared'
 // Pixels: E outline and eyes, K dark fur, k lighter dark fur (far legs),
 // W white fur, S shaded white fur, w eye glint, L closed-eye line, R open mouth,
 // G bamboo, g bamboo leaf
-export type Pose = { w: number; h: number; sprite: string[] }
+type Pose = { w: number; h: number; sprite: string[] }
 
 const SIT = [
   '..EEE.......EEE..',
@@ -172,8 +172,7 @@ function react(text: string): string {
   return pick(['on it.', 'yep.', "let's go.", 'bet.', '*nods*'])
 }
 
-// Any panda: its poses (at most 23 wide and SIT_H tall) and what it says
-export const pandaWith = (pose: (s: Scene) => Pose, lines: Character['lines']): Character => ({
+export const panda: Character = {
   width: TERM_W,
   canMunch: true,
 
@@ -226,15 +225,13 @@ export const pandaWith = (pose: (s: Scene) => Pose, lines: Character['lines']): 
     )
   },
 
-  lines,
-})
-
-export const panda = pandaWith(pose, {
-  hi: 'yo.',
-  jump: 'hup!',
-  done: ['nailed it.', 'done.', 'ez.'],
-  abort: 'k.',
-  error: 'oof.',
-  snack: ['*munch*', 'nom', '*crunch*'],
-  react,
-})
+  lines: {
+    hi: 'yo.',
+    jump: 'hup!',
+    done: ['nailed it.', 'done.', 'ez.'],
+    abort: 'k.',
+    error: 'oof.',
+    snack: ['*munch*', 'nom', '*crunch*'],
+    react,
+  },
+}
