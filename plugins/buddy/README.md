@@ -8,7 +8,6 @@ A pixel buddy for [Claude Code](https://code.claude.com) that lives in the band 
 - **Claude is working:** it runs back and forth, hopping on each tool call.
 - **Claude finishes:** a happy double jump. The dino puts its shades on.
 - **Something goes wrong:** it gets upset. The snail hides in its shell, and the duck's feathers ruffle.
-- **Claude reads files:** it puts on a little pair of reading glasses.
 - **A `git commit` or `git push`:** confetti, a happy jump, and "committed!" or "shipped!".
 - **Claude asks you a question:** it shows a "?" until you've answered.
 - **A long wait:** if nothing happens for a while during Claude's turn, it yawns.
@@ -58,7 +57,7 @@ Then run `/reload-plugins` in an open session, or start a new one.
 
 ## How it works
 
-Buddy is a Claude Code mod: a hooks module (`hooks/register.tsx`) that draws in the band above the prompt and listens for a few events: you sending a message, Claude starting and finishing a turn, and each tool call. From a tool call it only looks at the tool's name and, for shell commands, whether it's reading files or running `git commit` or `git push`. It runs ten frames a second and only redraws when the picture changes. Your choice of buddy, and whether it's hidden, are saved with the plugin, so they carry over between sessions.
+Buddy is a Claude Code mod: a hooks module (`hooks/register.tsx`) that draws in the band above the prompt and listens for a few events: you sending a message, Claude starting and finishing a turn, and each tool call. From a tool call it only looks at the tool's name and, for shell commands, whether it's a `git commit` or `git push`. It runs ten frames a second and only redraws when the picture changes. Your choice of buddy, and whether it's hidden, are saved with the plugin, so they carry over between sessions.
 
 ## Troubleshooting
 

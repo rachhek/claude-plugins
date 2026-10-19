@@ -8,7 +8,7 @@ import type { Character } from './shared'
 //
 // Pixels: E outline and eyes, K dark back, k lighter flipper, W white belly and face,
 // S shaded white, w eye glint, Y beak and feet, y far foot, P blush,
-// B fish, b fish belly, Q reading glasses
+// B fish, b fish belly
 const W = 19
 const H = 17 // the body, a pixel to bob up into, and its feet
 const AIR = 3 // headroom (it slides rather than jumps, so little is needed)
@@ -87,12 +87,9 @@ function sprite(s: Scene): string[] {
   if (s.isHappy) {
     // Happy: eyes curved shut, a little blush
     over(body, 4, ['............E.....', '..........EWWE....', '............P.....'])
-  } else if (s.isAsleep || (s.isBlinking && !s.isReading)) {
-    // (Reading, it keeps its eyes open behind its glasses)
+  } else if (s.isAsleep || s.isBlinking) {
     over(body, 4, ['...........WW.....'])
   }
-  // Reading glasses: a round gold lens about its eye, the arm back across its head
-  if (s.isReading && !s.isAsleep) over(body, 3, ['...........QQ', '........QQQ..Q', '..........Q..Q', '...........QQ'])
   const rows =
     legs === 'a'
       ? [...body, ...STEP[Math.floor(s.x / 2) % 2 ? 'near' : 'far']]
@@ -119,7 +116,6 @@ const TERM = {
   P: '#e98f9a',
   B: '#6aa6d8',
   b: '#c8d6e0',
-  Q: '#f2c14e',
 }
 const SVG = {
   E: '#0b0c10',
@@ -133,7 +129,6 @@ const SVG = {
   P: '#e2808c',
   B: '#5b97cc',
   b: '#b9c9d4',
-  Q: '#e8b23a',
 }
 
 const ICE = "_.____-______.___'____-___"

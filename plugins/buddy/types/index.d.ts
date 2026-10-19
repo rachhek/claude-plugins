@@ -33,8 +33,6 @@ export type Scene = {
   isWorking: boolean
   /** Something just went wrong (an error or an interrupted turn), for a few seconds */
   isUpset: boolean
-  /** Claude is reading files (a few seconds after each Read, Grep or Glob): time for reading glasses */
-  isReading: boolean
   legs: Legs
   isAsleep: boolean
   isBlinking: boolean

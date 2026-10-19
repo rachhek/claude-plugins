@@ -3,8 +3,7 @@ import { bubbleSvg, halfBlocks, mirror, pick, pixels, shadowSvg, svgOpen } from 
 import type { Character } from './shared'
 
 // The dino: one green sprite, drawn in half blocks in the terminal and as
-// pixels on the desktop. D is its body, B its shades, w the glint on them,
-// Q its reading glasses.
+// pixels on the desktop. D is its body, B its shades, w the glint on them.
 const W = 14
 const H = 10
 const AIR = 4
@@ -34,18 +33,12 @@ function sprite(s: Scene): string[] {
     // Shades on
     rows[1] = '.......DBwBBDD'
     rows[2] = '.......DDBBDDD'
-  } else if (s.isReading) {
-    // Reading glasses: a round lens about its eye
-    rows[0] = '........QQDDDD'
-    rows[1] = '.......QD.QDDD'
-    rows[2] = '.......QDDQDDD'
-    rows[3] = '.......DQQD...'
   }
   return mirror(rows, s.dir)
 }
 
-const TERM = { D: '#5fb760', B: '#262626', w: '#ffffff', Q: '#ffd166' }
-const SVG = { D: '#4f9d58', B: '#1d1d1d', w: '#ffffff', Q: '#f2c14e' }
+const TERM = { D: '#5fb760', B: '#262626', w: '#ffffff' }
+const SVG = { D: '#4f9d58', B: '#1d1d1d', w: '#ffffff' }
 
 const GROUND = '______.________,_____ __.____________'
 

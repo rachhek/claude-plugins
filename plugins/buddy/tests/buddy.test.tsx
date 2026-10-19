@@ -231,9 +231,8 @@ test('a git commit or push sets off a celebration', async ($, on) => {
   await clock.advance(200)
   expect(await says(/shipped!/)).toBe(true)
   await clock.advance(5000)
-  await callTool($, { tool: 'Read', file_path: '/tmp/x', tool_use_id: 't3' })
   await clock.advance(200)
-  // Confetti and glasses don't crash any buddy
+  // Confetti doesn't crash the drawing
   for (const surface of ['terminal', 'desktop'] as const) {
     const view = await $.ui.mount({ ...BAND, surface })
     expect(await view.find({ type: surface === 'terminal' ? 'Box' : 'Svg' })).toBeDefined()

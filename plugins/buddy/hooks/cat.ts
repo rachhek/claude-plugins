@@ -6,7 +6,7 @@ import type { Character } from './shared'
 // on the desktop. Facing right. For a snack it chases a mouse.
 //
 // Pixels: O fur, o stripes, far legs and shut eyes, W white chest and muzzle, E eyes,
-// P nose, blush and the mouse's ear and tail, M mouse, Q reading glasses
+// P nose, blush and the mouse's ear and tail, M mouse
 const W = 16
 const H = 14
 const AIR = 4
@@ -33,15 +33,12 @@ const LEGS: Record<Exclude<Legs, 'sit'>, string[]> = {
 
 function sprite(s: Scene, cols: number): string[] {
   const body = [...BODY]
-  // Reading, it keeps its eyes open behind its glasses
-  if (s.isAsleep || (s.isBlinking && !s.isReading)) put(body, 3, 13, 'o')
+  if (s.isAsleep || s.isBlinking) put(body, 3, 13, 'o')
   else if (s.isHappy) {
     // Content: eyes shut, a little blush
     put(body, 3, 13, 'o')
     put(body, 4, 12, 'P')
   }
-  // Reading glasses: a round lens about its eye, the arm back towards its ear
-  if (s.isReading && !s.isAsleep) stamp(body, 1, 10, ['..QQ', '.Q..Q', 'QQ..Q', '..QQ'])
   // Sitting, its body lowers onto its folded legs
   const rows =
     s.legs === 'sit'
@@ -75,8 +72,8 @@ const LANE = 8
 const offset = (s: Scene, cols: number) =>
   !s.isMunching || s.dir === 1 ? 0 : s.snack < APPROACH ? roomAhead(s.x, s.dir, W, cols) : LANE
 
-const TERM = { O: '#e8954a', o: '#b8662a', W: '#f4efe6', E: '#2a2420', P: '#e98f9a', M: '#9c9c9c', Q: '#4aa8d8' }
-const SVG = { O: '#e08a3c', o: '#a95a22', W: '#f4efe6', E: '#231d1a', P: '#e2808c', M: '#8f8f8f', Q: '#3f97c4' }
+const TERM = { O: '#e8954a', o: '#b8662a', W: '#f4efe6', E: '#2a2420', P: '#e98f9a', M: '#9c9c9c' }
+const SVG = { O: '#e08a3c', o: '#a95a22', W: '#f4efe6', E: '#231d1a', P: '#e2808c', M: '#8f8f8f' }
 
 const GROUND = "_.____'______._____,____"
 

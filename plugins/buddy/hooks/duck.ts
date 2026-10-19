@@ -9,7 +9,7 @@ import type { Character } from './shared'
 //
 // Pixels: E outline, Y yellow, S shaded yellow and wing, H rubber sheen,
 // O beak, o lower beak, K eye, w eye glint, B water, b ripples and drops,
-// C bread crust, c crumb, Q reading glasses
+// C bread crust, c crumb
 const W = 23 // the duck, a pixel of water behind and room in front for crumbs and its dip
 const H = 14
 const AIR = 4
@@ -117,10 +117,6 @@ const CRUMBS = [
   ['Cc.c', '....'],
 ]
 
-// Reading glasses: a round lens about its eye, the arm back across its head
-// (from a row above and four columns left of its eye's glint)
-const GLASSES = ['...QQ', 'QQQ..Q', '..Q..Q', '...QQ']
-
 const blank = () => Array<string>(H + AIR).fill('.'.repeat(W))
 
 // The duck alone, in a canvas with headroom for a hop, and the water and
@@ -137,19 +133,14 @@ function layers(s: Scene): { duck: string[]; water: string[]; top: number } {
     bob = 1
   } else bob = Math.floor(s.tick / 8) % 2 // standing still, a gentle bob
   const d = [...(s.isHappy && pose === FLOAT ? WING_UP : pose)]
-  // Where its eye's glint is, before any change to the eye
-  const gr = d.findIndex(r => r.includes('w'))
-  const gc = d[gr]?.indexOf('w') ?? -1
 
   // The eye: at its 2 × 2 pupil, a row lower and a column on when dipped
   const er = pose === DIP ? 4 : 3
   const ec = pose === DIP ? 14 : 13
   if (pose !== TUCK) {
     if (s.isHappy) stamp(d, er, ec, ['YKK', 'KYY'])
-    // Reading, it keeps its eyes open behind its glasses
-    else if (s.isBlinking && !s.isReading) stamp(d, er, ec + 1, ['YY', 'KK'])
+    else if (s.isBlinking) stamp(d, er, ec + 1, ['YY', 'KK'])
     else if (s.isUpset) stamp(d, er - 1, ec, ['K..', 'YKw', 'YKK'])
-    if (s.isReading && gr >= 0) stamp(d, gr - 1, gc - 4, GLASSES)
   }
 
   const top = AIR - s.air + bob
@@ -192,9 +183,8 @@ const TERM = {
   b: '#9fdcf5',
   C: '#c98a4b',
   c: '#e8b878',
-  Q: '#3a5bc7',
 }
-const SVG = { ...TERM, E: '#241a10', K: '#140f0a', Q: '#3352b8' }
+const SVG = { ...TERM, E: '#241a10', K: '#140f0a' }
 
 const GROUND = '~~-~~~~^~~-~~~~~~^~-~~~'
 

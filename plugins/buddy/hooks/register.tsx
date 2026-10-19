@@ -40,7 +40,6 @@ const INITIAL: Scene = {
   tick: 0,
   isWorking: false,
   isUpset: false,
-  isReading: false,
   legs: 'stand',
   isAsleep: false,
   isBlinking: false,
@@ -72,7 +71,6 @@ let pauseTicks = 0
 let munching = false
 let happyTicks = 0
 let upsetTicks = 0
-let readingTicks = 0 // Claude read a file a moment ago
 let confettiTicks = 0 // a commit or push to celebrate
 let asking = false // Claude has asked you a question and is waiting
 let quietSince = 0 // the tick anything last happened in Claude's turn
@@ -84,10 +82,7 @@ let cols = 80
 
 const TICK_MS = 100
 const YAWN_AFTER = 150 // fifteen seconds of quiet
-const READING_TICKS = 40 // reading glasses stay on four seconds after each read
 const CONFETTI_TICKS = 40 // four seconds of confetti
-// Shell commands that read or search files
-const READS = /^\s*(cd\s+\S+\s*&&\s*)?(cat|head|tail|less|grep|rg|sed\s+-n|find|ls)\b/
 const SLEEP_AFTER_TICKS = 600 // one minute
 const JUMP = [2, 3, 4, 4, 4, 3, 2, 1, 0]
 const HOP = [1, 2, 1, 0]
@@ -285,7 +280,6 @@ function step(): Scene {
 
   if (happyTicks > 0) happyTicks -= 1
   if (upsetTicks > 0) upsetTicks -= 1
-  if (readingTicks > 0) readingTicks -= 1
   if (confettiTicks > 0) confettiTicks -= 1
   // A long wait with nothing happening in Claude's turn: a yawn, then another every 30 seconds
   if (working && !asking && tick - quietSince >= YAWN_AFTER && (tick - quietSince - YAWN_AFTER) % 300 === 0) say('*yawn*', 25)
@@ -314,7 +308,6 @@ function step(): Scene {
     tick,
     isWorking: working,
     isUpset: upsetTicks > 0,
-    isReading: readingTicks > 0,
   }
 }
 
@@ -458,9 +451,6 @@ export const register: Register = on => {
     quietSince = tick
     // A small hop on each tool call, unless it is already in the air
     if (jumps.length === 0) jumps = [...HOP]
-    // Reading files (the Read tool, or a shell command that reads or searches): on go the reading glasses
-    const command = e.tool === 'Bash' && 'command' in e ? String(e.command) : ''
-    if (e.tool === 'Read' || READS.test(command)) readingTicks = READING_TICKS
     // A question for you: a "?" until you've answered
     if (e.tool === 'AskUserQuestion') {
       asking = true
@@ -470,6 +460,7 @@ export const register: Register = on => {
     asking = false
     quietSince = tick
     // A commit or a push: confetti
+    const command = e.tool === 'Bash' && 'command' in e ? String(e.command) : ''
     if (/\bgit\b.*\bpush\b/.test(command)) celebrate('shipped!')
     else if (/\bgit\b.*\bcommit\b/.test(command)) celebrate('committed!')
     return result

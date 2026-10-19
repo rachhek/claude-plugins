@@ -8,7 +8,7 @@ import type { Character } from './shared'
 //
 // Pixels: E outline, pupil line and closed eyes, G skin, g folded and
 // stretched legs, Y belly, C croak sac, W eye white, K pupil, w eye glint,
-// T tongue, F fly, f fly wings, Q reading glasses
+// T tongue, F fly, f fly wings
 const W = 18
 const H = 14
 const AIR = 8 // pixel rows of headroom: it leaps 2 pixels per unit of air
@@ -70,9 +70,6 @@ const LEAP = [
 // Laid over the eye white (4 × 4, at its top left in each pose)
 const SHUT = ['GGGG', 'EGGE', 'GEEG', 'GGGG']
 const JOY = ['GGGG', 'GEEG', 'EGGE', 'GGGG']
-// Reading glasses: a round frame in place of the eye's outline, the arm back
-// along its head (from a row above and three columns left of the eye white)
-const GLASSES = ['...QQQQ', '..Q....Q', '..Q....Q', 'QQQ....Q', '..Q....Q', '...QQQQ']
 // Happy and sitting, its throat puffs out (from column 10)
 const SAC: [number, string][] = [
   [10, 'ECCCCE.'],
@@ -99,10 +96,8 @@ function line([r0, c0]: [number, number], [r1, c1]: [number, number]): [number, 
 function sprite(s: Scene): string[] {
   const [base, er, ec]: [string[], number, number] = s.air > 0 ? [LEAP, 1, 11] : s.legs === 'b' ? [HOP, 1, 10] : [CROUCH, 2, 8]
   const rows = [...base]
-  // Reading, it keeps its eyes open behind its glasses
-  if (s.isAsleep || (s.isBlinking && !s.isReading)) stamp(rows, er, ec, SHUT)
+  if (s.isAsleep || s.isBlinking) stamp(rows, er, ec, SHUT)
   else if (s.isHappy) stamp(rows, er, ec, JOY)
-  if (s.isReading && !s.isAsleep) stamp(rows, er - 1, ec - 3, GLASSES)
   // The throat bulges when it's happy, and when it gulps down a fly
   const gulping = s.critter !== null && s.critter.caught >= 2
   if (base === CROUCH && (gulping || (s.isHappy && !s.isAsleep && !s.isBlinking))) {
@@ -165,9 +160,8 @@ const TERM = {
   T: '#ef7f9a',
   F: '#6a6a78',
   f: '#d8eef8',
-  Q: '#f0a83a',
 }
-const SVG = { ...TERM, E: '#12301a', G: '#4fae40', g: '#3c8e34', T: '#e26e8a', F: '#5a5a66', Q: '#e0962a' }
+const SVG = { ...TERM, E: '#12301a', G: '#4fae40', g: '#3c8e34', T: '#e26e8a', F: '#5a5a66' }
 
 const GROUND = "_,._'__~~~~__.,_'___~~~__"
 

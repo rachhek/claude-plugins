@@ -1,5 +1,5 @@
 import type { Scene } from '../types'
-import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, stamp, svgOpen, turn } from './shared'
+import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, svgOpen, turn } from './shared'
 import type { Character } from './shared'
 
 // The panda: pixel art for sitting and walking, facing right, drawn one art
@@ -9,7 +9,7 @@ import type { Character } from './shared'
 //
 // Pixels: E outline and eyes, K dark fur, k lighter dark fur (far legs),
 // W white fur, S shaded white fur, w eye glint, L closed-eye line, R open mouth,
-// G bamboo, g bamboo leaf, Q reading glasses
+// G bamboo, g bamboo leaf
 type Pose = { w: number; h: number; sprite: string[] }
 
 const SIT = [
@@ -31,12 +31,6 @@ const SIT = [
   'EKKKESSSSSSSEKKKE',
   '.EEEEEEEEEEEEEEE.',
 ]
-// Reading glasses (from row 4, column 2): a round gold lens about each eye, a
-// bridge between them and the arms out to the sides of its head
-const GLASSES = ['..QQ.....QQ..', 'QQ..QQQQQ..QQ', '.Q..Q...Q..Q.', '..QQ.....QQ..']
-// Side on, walking: one lens about the near eye, its arm back to the ear (from row 4, column 14)
-const LENS = ['...QQ.', 'QQQ..Q', '..Q..Q', '...QQ.']
-
 const SIT_W = SIT[0]?.length ?? 0
 const SIT_H = SIT.length
 
@@ -63,15 +57,13 @@ function sitting(s: Scene): Pose {
   const set = (r: number, c0: number, c1: number, ch: string) => {
     for (let c = c0; c <= c1; c++) put(rows, r, c, ch)
   }
-  // Reading, it keeps its eyes open behind its glasses
-  if (s.isAsleep || (s.isBlinking && !s.isReading)) {
+  if (s.isAsleep || s.isBlinking) {
     // Each eye a lighter line in its patch
     set(5, 4, 5, 'K')
     set(5, 11, 12, 'K')
     set(6, 4, 5, 'L')
     set(6, 11, 12, 'L')
   }
-  if (s.isReading && !s.isAsleep) stamp(rows, 4, 2, GLASSES)
   if (!s.isMunching) return { w: SIT_W, h: SIT_H, sprite: rows }
   const wide = rows.map(r => `..${r}..`)
   EAT.forEach((row, r) => [...row].forEach((p, c) => p !== '.' && put(wide, 3 + r, c, p)))
@@ -126,9 +118,7 @@ const WALK = [
 
 function walking(s: Scene): Pose {
   const frame = WALK[s.legs === 'b' ? 1 : 0] ?? WALK[0] ?? []
-  const sprite = [...frame]
-  if (s.isReading) stamp(sprite, 4, 14, LENS)
-  return { w: frame[0]?.length ?? 0, h: frame.length, sprite }
+  return { w: frame[0]?.length ?? 0, h: frame.length, sprite: [...frame] }
 }
 
 // Curled into a ball for a roll, eyes shut; turned a quarter every other tick
@@ -182,7 +172,6 @@ const TERM = {
   R: '#a04a5a',
   G: '#7bc96f',
   g: '#a5dc8f',
-  Q: '#f2c14e',
 }
 
 const SVG = {
@@ -200,7 +189,6 @@ const SVG = {
   R: '#9c3f52',
   G: '#5fae45',
   g: '#93d07a',
-  Q: '#e8b23a',
 }
 
 const GRASS = ".,..'..,...'.,..,'...,.."
