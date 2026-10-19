@@ -82,7 +82,8 @@ Each character is a `Character` (see `shared.ts`):
   `cols` wide with `offset: s.x`, so it sits at column 0, and the engine never
   gives it a speech bubble
 - The scene also carries `tick` (ten a second, for ambient animation),
-  `isWorking` and `isUpset` (an error or interrupted turn, for a few seconds)
+  `isWorking`, `isReading` (Claude is reading files: draw reading glasses)
+  and `isUpset` (an error or interrupted turn, for a few seconds)
 - `terminal`, `svg`, `lines`: how it draws and what it says
 
 Art lives in the character file as rows of letters, one letter per pixel and

@@ -15,6 +15,10 @@ const BAND = {
   },
 } as const
 
+// A tool call, with the tool's arguments loosely typed (the full types are too deep for a test)
+const callTool = ($: { tool: { call: unknown } }, input: Record<string, unknown>) =>
+  ($.tool.call as (input: Record<string, unknown>) => Promise<unknown>)(input)
+
 const RUN = { origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } } as const
 
 const setUp = (on: On) => {
@@ -171,7 +175,7 @@ for (const kind of ['panda', 'dino', 'cat', 'penguin', 'frog', 'ghost', 'crab', 
     }
     await $.command.run({ command: 'buddy', args: kind, ...RUN })
     await through(12) // hello jump, then walking
-    await $.command.run({ command: 'buddy', args: 'jump', ...RUN })
+    await $.command.run({ command: 'buddy', args: 'poke', ...RUN })
     await through(12)
     await $.command.run({ command: 'buddy', args: 'snack', ...RUN })
     await through(40) // the snack, turning at the edges while chasing
@@ -207,4 +211,61 @@ test('a scene is called by its name', async ($, on) => {
   await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
   expect((await $.command.run({ command: 'buddy', args: 'forest', ...RUN })).text).toBe('Your buddy is now Forest.')
   expect((await $.command.run({ command: 'buddy', args: 'panda', ...RUN })).text).toBe('Your buddy is now the panda.')
+})
+
+test('a git commit or push sets off a celebration', async ($, on) => {
+  const clock = setUp(on)
+  on('tool.call', async () => ({ result: '' }))
+  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+  const says = async (text: RegExp) => {
+    const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    const found = (await term.find({ type: 'Text', text })) !== undefined
+    await term.unmount()
+    return found
+  }
+  await callTool($, { tool: 'Bash', command: 'git commit -m "a thing"', tool_use_id: 't1' })
+  await clock.advance(200)
+  expect(await says(/committed!/)).toBe(true)
+  await clock.advance(5000)
+  await callTool($, { tool: 'Bash', command: 'git push', tool_use_id: 't2' })
+  await clock.advance(200)
+  expect(await says(/shipped!/)).toBe(true)
+  await clock.advance(5000)
+  await callTool($, { tool: 'Read', file_path: '/tmp/x', tool_use_id: 't3' })
+  await clock.advance(200)
+  // Confetti and glasses don't crash any buddy
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const view = await $.ui.mount({ ...BAND, surface })
+    expect(await view.find({ type: surface === 'terminal' ? 'Box' : 'Svg' })).toBeDefined()
+    await view.unmount()
+  }
+})
+
+test('a question from Claude shows a "?" until it is answered; a long quiet wait gets a yawn', async ($, on) => {
+  const clock = setUp(on)
+  let answer = () => {}
+  const answered = new Promise<void>(resolve => (answer = resolve))
+  on('tool.call', async (_$, e) => {
+    if ((e as { tool: string }).tool === 'AskUserQuestion') await answered
+    return { result: '' }
+  })
+  on('turn.start', async () => ({ turnId: 't' }))
+  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+  const says = async (text: RegExp) => {
+    const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    const found = (await term.find({ type: 'Text', text })) !== undefined
+    await term.unmount()
+    return found
+  }
+  const asked = callTool($, { tool: 'AskUserQuestion', questions: [], tool_use_id: 'q1' })
+  await clock.advance(6000) // well past an ordinary bubble
+  expect(['asking', await says(/‹\?›/)]).toEqual(['asking', true])
+  answer()
+  await asked
+  await clock.advance(4000)
+  expect(['answered', await says(/‹\?›/)]).toEqual(['answered', false])
+
+  await $.turn.start({ turnId: 't' } as never)
+  await clock.advance(16_000)
+  expect(['yawn', await says(/yawn/)]).toEqual(['yawn', true])
 })

@@ -1,5 +1,5 @@
 import type { Scene } from '../types'
-import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, svgOpen } from './shared'
+import { bubbleSvg, halfBlocks, mirror, outline, pick, pixels, put, shadowSvg, stamp, svgOpen } from './shared'
 import type { Character } from './shared'
 
 // The ghost: a little sheet ghost, drawn in half blocks in the terminal and as
@@ -7,7 +7,7 @@ import type { Character } from './shared'
 // as it drifts, and it never touches the ground. For a snack it chases a bat.
 //
 // Pixels: E outline, shut eyes and mouth, W sheet, S shaded sheet, K eyes,
-// w eye glint, P blush, R open mouth, B bat, Y bat's eye
+// w eye glint, P blush, R open mouth, B bat, Y bat's eye, Q reading glasses
 const W = 16
 const H = 14
 // Pixel rows: the ghost and the air below it. It flies, bobbing on a slow
@@ -52,11 +52,15 @@ const behind = (s: Scene, cols: number) => Math.max(0, Math.min(TRAIL, s.dir ===
 const lift = (s: Scene) => (s.isAsleep ? 2 : 4 + Math.round(2 * Math.sin(s.tick * 0.15))) + s.air
 
 const EYES = [5, 6, 10, 11]
+// Reading glasses (from row 3, column 3): a round lens about each eye, a bridge
+// between them and the arms out to its sides
+const GLASSES = ['..QQ...QQ', 'QQ..QQQ..QQ', '.Q..Q.Q..Q', '.Q..Q.Q..Q', '..QQ...QQ']
 
 function sprite(s: Scene, cols: number): string[] {
   const body = [...BODY]
   const set = (r: number, cs: number[], p: string) => cs.forEach(c => put(body, r, c, p))
-  if (s.isAsleep || s.isBlinking) {
+  // Reading, it keeps its eyes open behind its glasses
+  if (s.isAsleep || (s.isBlinking && !s.isReading)) {
     // Eyes shut: a line along the bottom of each
     set(4, EYES, 'W')
     set(5, EYES, 'W')
@@ -73,6 +77,7 @@ function sprite(s: Scene, cols: number): string[] {
     // Boo! Its mouth wide open
     ;['WEEW', 'ERRE', 'WEEW'].forEach((row, i) => [...row].forEach((p, c) => put(body, 8 + i, 7 + c, p)))
   }
+  if (s.isReading && !s.isAsleep) stamp(body, 3, 3, GLASSES)
   // Flying when it moves (faster while Claude works or it chases its bat); else hovering
   const flying = s.legs === 'a' || s.legs === 'b'
   const speed = !flying ? 0 : s.isWorking || s.isMunching ? 3 : 2
@@ -119,6 +124,7 @@ const COLOURS = {
   R: '#c0506e',
   B: '#6b3f9e',
   Y: '#ffd84a',
+  Q: '#e8a93a',
 }
 
 const GROUND = '.   .  .    .   .  .     '

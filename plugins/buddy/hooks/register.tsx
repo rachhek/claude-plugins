@@ -13,7 +13,7 @@ import { panda } from './panda'
 import { penguin } from './penguin'
 import { snail } from './snail'
 import { APPROACH, pick, runs } from './shared'
-import type { Character } from './shared'
+import type { Cell, Character } from './shared'
 
 // A pixel buddy that lives in the band above the prompt: a panda, a dino, a cat, a penguin, a frog, a ghost,
 // a crab, a rubber duck, a snail, or a whole scene: a little forest.
@@ -40,6 +40,7 @@ const INITIAL: Scene = {
   tick: 0,
   isWorking: false,
   isUpset: false,
+  isReading: false,
   legs: 'stand',
   isAsleep: false,
   isBlinking: false,
@@ -71,6 +72,10 @@ let pauseTicks = 0
 let munching = false
 let happyTicks = 0
 let upsetTicks = 0
+let readingTicks = 0 // Claude read a file a moment ago
+let confettiTicks = 0 // a commit or push to celebrate
+let asking = false // Claude has asked you a question and is waiting
+let quietSince = 0 // the tick anything last happened in Claude's turn
 let nextBlink = 30
 let bubble: string | null = null
 let bubbleTicks = 0
@@ -78,6 +83,11 @@ let lastWritten = ''
 let cols = 80
 
 const TICK_MS = 100
+const YAWN_AFTER = 150 // fifteen seconds of quiet
+const READING_TICKS = 40 // reading glasses stay on four seconds after each read
+const CONFETTI_TICKS = 40 // four seconds of confetti
+// Shell commands that read or search files
+const READS = /^\s*(cd\s+\S+\s*&&\s*)?(cat|head|tail|less|grep|rg|sed\s+-n|find|ls)\b/
 const SLEEP_AFTER_TICKS = 600 // one minute
 const JUMP = [2, 3, 4, 4, 4, 3, 2, 1, 0]
 const HOP = [1, 2, 1, 0]
@@ -135,6 +145,45 @@ function say(text: string, ticks = 30) {
 function wake() {
   lastActivity = tick
   munching = false
+}
+
+// Confetti: bright bits drifting down through the buddy's empty space, piece k
+// starting k % 6 rows late, so it falls in a scatter
+const CONFETTI = ['#ff5d73', '#ffd23f', '#3ec1ff', '#7be07b', '#c38bff']
+const BITS = ['▘', '▝', '▖', '▗']
+function sprinkle(rows: Cell[][]) {
+  if (confettiTicks <= 0) return
+  const fallen = Math.floor((CONFETTI_TICKS - confettiTicks) / 2)
+  const w = rows[0]?.length ?? 0
+  for (let k = 0; k < w / 2; k++) {
+    const cell = rows[fallen - (k % 6)]?.[(k * 7919) % w]
+    if (cell && cell.ch === ' ') {
+      cell.ch = BITS[k % BITS.length] ?? '▘'
+      cell.fg = CONFETTI[k % CONFETTI.length]
+    }
+  }
+}
+// The same on the desktop: little squares over the buddy, `left` and `cols` in columns
+function confettiSvg(svg: string, left: number, cols: number): string {
+  if (confettiTicks <= 0) return svg
+  const fallen = (CONFETTI_TICKS - confettiTicks) * 3
+  let bits = ''
+  for (let k = 0; k < cols; k++) {
+    const y = fallen - (k % 6) * 8
+    if (y < 0) continue
+    const x = (left + ((k * 7919) % cols)) * 8
+    bits += `<rect x="${x}" y="${y}" width="4" height="4" fill="${CONFETTI[k % CONFETTI.length]}"/>`
+  }
+  return svg.replace(/<\/svg>$/, `${bits}</svg>`)
+}
+
+// A commit or push: confetti, a happy jump and a word about it
+function celebrate(text: string) {
+  wake()
+  confettiTicks = CONFETTI_TICKS
+  happyTicks = 30
+  jumps = [...JUMP]
+  say(text, 25)
 }
 
 function hello() {
@@ -236,8 +285,14 @@ function step(): Scene {
 
   if (happyTicks > 0) happyTicks -= 1
   if (upsetTicks > 0) upsetTicks -= 1
+  if (readingTicks > 0) readingTicks -= 1
+  if (confettiTicks > 0) confettiTicks -= 1
+  // A long wait with nothing happening in Claude's turn: a yawn, then another every 30 seconds
+  if (working && !asking && tick - quietSince >= YAWN_AFTER && (tick - quietSince - YAWN_AFTER) % 300 === 0) say('*yawn*', 25)
   if (bubbleTicks > 0) bubbleTicks -= 1
   else bubble = null
+  // Waiting on you: a question mark stays up, over anything else it says, until you answer
+  if (asking && me().width > 0) bubble = '?'
 
   const isMunching = munching && !asleep && (legs === 'sit' || me().chases)
   snackTicks = isMunching ? snackTicks + 1 : 0
@@ -259,6 +314,7 @@ function step(): Scene {
     tick,
     isWorking: working,
     isUpset: upsetTicks > 0,
+    isReading: readingTicks > 0,
   }
 }
 
@@ -289,7 +345,7 @@ async function setHidden($: EngineInterface, hide: boolean) {
 // ---------------------------------------------------------------- hooks
 
 const PERSON_ORIGINS = new Set(['composer', 'bridge', 'sdk', 'unclassified'])
-const USAGE = 'Usage: /buddy [panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | on | off | jump | snack]'
+const USAGE = 'Usage: /buddy [panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | on | off | poke | snack]'
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -307,7 +363,7 @@ export const register: Register = on => {
       await $.command.register({
         name: 'buddy',
         description: 'Pick your buddy (panda, dino, cat, penguin, frog, ghost, crab, duck, snail, or forest), or show, hide or poke it',
-        argumentHint: '[panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | on | off | jump | snack]',
+        argumentHint: '[panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | on | off | poke | snack]',
         immediate: true,
       })
     } catch {
@@ -338,7 +394,8 @@ export const register: Register = on => {
       hello()
       return { text: `${nameOf(kind).replace(/^the /, 'Your ')} is back!` }
     }
-    if (arg === 'jump') {
+    // Poke it: it does its move (jumps, rolls, slides, burrows, hides...); 'jump' still works
+    if (arg === 'poke' || arg === 'jump') {
       wake()
       jumps = [...JUMP]
       say(me().lines.jump)
@@ -392,14 +449,30 @@ export const register: Register = on => {
   on('turn.start', async ($, e, next) => {
     wake()
     working = true
+    quietSince = tick
     return next(e)
   })
 
   on('tool.call', async ($, e, next) => {
     wake()
+    quietSince = tick
     // A small hop on each tool call, unless it is already in the air
     if (jumps.length === 0) jumps = [...HOP]
-    return next(e)
+    // Reading files (the Read tool, or a shell command that reads or searches): on go the reading glasses
+    const command = e.tool === 'Bash' && 'command' in e ? String(e.command) : ''
+    if (e.tool === 'Read' || READS.test(command)) readingTicks = READING_TICKS
+    // A question for you: a "?" until you've answered
+    if (e.tool === 'AskUserQuestion') {
+      asking = true
+      say('?', 20)
+    }
+    const result = await next(e)
+    asking = false
+    quietSince = tick
+    // A commit or a push: confetti
+    if (/\bgit\b.*\bpush\b/.test(command)) celebrate('shipped!')
+    else if (/\bgit\b.*\bcommit\b/.test(command)) celebrate('committed!')
+    return result
   })
 
   on('turn.complete', async ($, e, next) => {
@@ -433,11 +506,12 @@ export const register: Register = on => {
     let ours
     if (e.surface === 'desktop') {
       const { Svg } = $.ui.resolve(e)
-      ours = <Svg source={who.svg(at, cols)} alt={s.bubble ? `Your buddy says: ${s.bubble}` : 'Your buddy'} />
+      ours = <Svg source={confettiSvg(who.svg(at, cols), who.width ? x : 0, who.width || cols)} alt={s.bubble ? `Your buddy says: ${s.bubble}` : 'Your buddy'} />
     } else {
       const { Box, Text } = $.ui.resolve(e)
       // Pixel rows the band has room for, less one text row for the ground
       const drawing = who.terminal(at, cols, (e.props.maxRows - 1) * 2)
+      sprinkle(drawing.rows)
       // Never past either edge of the band: a row too wide gets squeezed and comes out garbled
       const drawn = drawing.rows[0]?.length ?? who.width
       const left = Math.max(0, Math.min(x - (drawing.offset ?? 0), cols - drawn))

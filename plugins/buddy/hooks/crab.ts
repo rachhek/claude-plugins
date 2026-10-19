@@ -10,7 +10,7 @@ import type { Character } from './shared'
 //
 // Pixels: E outline and closed-eye line, R shell, r lighter shell (top, claws),
 // D darker underside and legs, W eye white, K pupil, w glint, G seaweed,
-// g lighter seaweed, O bubble, S sand, s darker sand
+// g lighter seaweed, O bubble, S sand, s darker sand, Q reading glasses
 const W = 20
 const H = 14 // the 12-row crab and two rows above it for raised claws and bubbles
 
@@ -51,6 +51,9 @@ const SHUT = ['rrr', 'EEE', 'RRR']
 const JOY = ['WWW', 'WEW', 'EWE']
 const LOOK_L = ['WWW', 'KwW', 'KKW']
 const LOOK_R = ['WWW', 'WwK', 'WKK']
+// Reading glasses: a round frame in place of each eye's outline, side by side
+// (from the body's top row, column 5)
+const GLASSES = ['.QQQ..QQQ', 'Q...QQ...Q', 'Q...QQ...Q', 'Q...QQ...Q', '.QQQ..QQQ']
 
 // Overwrite row r from column c with `text`, '.' included
 function lay(rows: string[], r: number, c: number, text: string) {
@@ -97,6 +100,7 @@ function nibbling(s: Scene): string[] {
   const { top, rows } = sitting()
   ARMLESS.forEach((a, i) => lay(rows, top + i, 0, a))
   stamp(rows, top + 5, 1, NIBBLE)
+  if (s.isReading) stamp(rows, top, 5, GLASSES)
   return s.chew ? flip(rows) : rows
 }
 
@@ -161,7 +165,9 @@ function sprite(s: Scene): string[] {
   const { top, rows } = s.legs === 'sit' ? sitting() : standing(s.legs)
   // Happy, its eyes are already shut in a smile, so it doesn't blink
   if (s.isHappy) cheer(rows, top)
-  else if (s.isBlinking) eyes(rows, top, SHUT)
+  // Reading, it keeps its eyes open behind its glasses
+  else if (s.isBlinking && !s.isReading) eyes(rows, top, SHUT)
+  if (s.isReading) stamp(rows, top, 5, GLASSES)
   return rows
 }
 
@@ -180,6 +186,7 @@ const TERM = {
   O: '#9fd8f0',
   S: '#e6c98a',
   s: '#c9a764',
+  Q: '#ffd84a',
 }
 
 const SVG = {
@@ -195,6 +202,7 @@ const SVG = {
   O: '#8fcde8',
   S: '#dcc083',
   s: '#bf9d5c',
+  Q: '#f2c94c',
 }
 
 const SAND = '..,.~...,..~.,...~..,.'

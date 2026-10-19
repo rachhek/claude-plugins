@@ -9,7 +9,8 @@ import type { Character } from './shared'
 //
 // Pixels: E outline and mouth, B shell, b shaded shell, Y spiral, h shine,
 // G body, g belly edge, K eyes, w eye glint, P blush, R open mouth,
-// L lettuce, l lettuce vein, d shaded lettuce, T slime trail, u fading trail, x sparkle
+// L lettuce, l lettuce vein, d shaded lettuce, T slime trail, u fading trail, x sparkle,
+// Q reading glasses
 const W = 19 // columns the snail itself takes
 const LANE = 4 // columns its lettuce takes in front, past `width`
 const H = 14
@@ -149,6 +150,10 @@ function eyes(rows: string[], top: string, bottom: string) {
   )
 }
 
+// Reading glasses: a round lens about each eye on its stalk, the two side by side
+// (from a row above and two columns left of each eye's glint)
+const LENS = ['.QQ.', 'Q..Q', 'Q..Q', '.QQ.']
+
 // The snail itself, facing right, W columns wide
 const hiding = (s: Scene) => (s.spin > 0 && !s.isHappy) || s.isUpset
 
@@ -167,7 +172,9 @@ function pose(s: Scene): string[] {
   else if (s.isHappy) rows = [...PERK, ...STAND.slice(PERK.length)]
   else rows = [...STAND]
 
-  if (s.isAsleep || s.isBlinking) eyes(rows, 'G', 'K')
+  if (s.isReading && !s.isAsleep) rows.forEach((row, r) => [...row].forEach((p, c) => p === 'w' && stamp(rows, r - 1, c - 2, LENS)))
+  // Reading, it keeps its eyes open behind its glasses
+  if (s.isAsleep || (s.isBlinking && !s.isReading)) eyes(rows, 'G', 'K')
   else if (s.isHappy) {
     eyes(rows, 'K', 'G')
     // Its shell twinkles
@@ -219,6 +226,7 @@ const TERM = {
   T: '#a8d4e6',
   u: '#5f7f8c',
   x: '#ffffff',
+  Q: '#e0584f',
 }
 
 const SVG = {
@@ -239,6 +247,7 @@ const SVG = {
   T: '#9ccbe0',
   u: '#6d8c99',
   x: '#ffffff',
+  Q: '#d04a44',
 }
 
 const PATH = ".'..,.'..'.,...,'..'.,."
