@@ -16,7 +16,9 @@ Then install any plugin below with `claude plugin install <name>@rachhek`, or br
 
 | Plugin | What it does |
 | --- | --- |
-| [buddy](plugins/buddy) | A pixel buddy above your prompt (dino or panda) that jumps at your messages, runs while Claude works and naps when you're away |
+| [buddy](plugins/buddy) | A pixel buddy above your prompt: a panda, dino, cat, penguin, frog, ghost, crab, rubber duck, snail, or a whole little forest. It jumps at your messages, runs while Claude works and naps when you're away |
+
+![Every buddy, as drawn in the terminal](plugins/buddy/docs/preview.png)
 
 ## Develop
 
@@ -28,3 +30,11 @@ claude plugin validate --strict .     # check the marketplace and every plugin
 ```
 
 Bump a plugin's `version` in its `plugin.json` when you release it, so only that plugin updates for people.
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE) © Rachhek Shrestha

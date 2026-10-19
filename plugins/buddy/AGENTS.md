@@ -1,9 +1,10 @@
 # Buddy: notes for agents
 
-A pixel buddy (panda, dino or cat) drawn in the band above Claude Code's
-prompt. The engine is `hooks/register.tsx`; each character is one file in
-`hooks/` (`panda.ts`, `dino.ts`, `cat.ts`); shared drawing helpers are in
-`hooks/shared.ts`.
+A pixel buddy drawn in the band above Claude Code's prompt: a panda, dino,
+cat, penguin, frog, ghost, crab, rubber duck, snail, or a whole-band forest
+scene. The engine is `hooks/register.tsx`; each character is one file in
+`hooks/` (`panda.ts`, `dino.ts`, `cat.ts`, ...); shared drawing helpers are
+in `hooks/shared.ts`. How to contribute: `CONTRIBUTING.md` at the repo root.
 
 ## Keep the pixels crisp
 
