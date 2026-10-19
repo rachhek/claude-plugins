@@ -151,6 +151,7 @@ function lights(g: Grid, base: Grid, s: Scene, hem: number): number[] {
 
   for (const { lift, bright, phase, span, seed } of CURTAINS) {
     const fade = 0.75 + 0.25 * Math.sin(t / 45 + phase) // the curtain waxes and wanes
+    let lastRay = -2
     for (let c = 0; c < w; c++) {
       const h = hash(c * 31 + seed)
       // Most columns stay dark: a ray in about one of every two or three
@@ -167,7 +168,9 @@ function lights(g: Grid, base: Grid, s: Scene, hem: number): number[] {
       // Hanging from a slowly waving hem
       const bottom = Math.round(hem - lift - 1.2 * (0.5 + 0.5 * Math.sin(c / 9 + t / 40 + phase)) - 0.6 * Math.sin(c / 4 - t / 30))
       const length = Math.round(1 + strength * (tall - lift))
-      if (length < 3) continue
+      // Short rays side by side read as a blob: keep a gap unless both are strong
+      if (length < 3 || (c - lastRay === 1 && strength < 0.7)) continue
+      lastRay = c
       for (let j = 0; j < length; j++) {
         const r = bottom - j
         if (r < 0 || base[r]?.[c] !== '.') continue
