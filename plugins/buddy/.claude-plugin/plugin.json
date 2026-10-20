@@ -6,6 +6,9 @@
   "author": { "name": "Rachhek Shrestha", "url": "https://rachhek.net" },
   "homepage": "https://github.com/rachhek/claude-plugins/tree/main/plugins/buddy",
   "repository": "https://github.com/rachhek/claude-plugins",
+  "documentationUrl": "https://github.com/rachhek/claude-plugins/tree/main/plugins/buddy#readme",
+  "supportUrl": "https://github.com/rachhek/claude-plugins/issues",
+  "privacyPolicyUrl": "https://github.com/rachhek/claude-plugins/tree/main/plugins/buddy#privacy",
   "license": "MIT",
   "keywords": ["mod", "fun", "pixel-art", "companion"]
 }

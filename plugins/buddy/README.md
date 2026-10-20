@@ -131,6 +131,10 @@ Every buddy is pixel art drawn by hand as rows of letters, one letter per pixel,
 
 All the characters are original; none is based on someone else's character.
 
+## Privacy
+
+Buddy collects no personal data. It makes no network requests and no model calls, and sends nothing anywhere. It looks at the text of your messages only to pick the buddy's reply, and at shell commands only to spot a `git commit` or `git push`; neither is stored. The only things it saves, on your own machine, are which buddy you picked and whether it's hidden.
+
 ## License
 
 [MIT](LICENSE) © Rachhek Shrestha
