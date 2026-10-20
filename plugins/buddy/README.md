@@ -129,7 +129,7 @@ Every buddy is pixel art drawn by hand as rows of letters, one letter per pixel,
 | duck | 20 × 14 |
 | forest | the full width of the band, 18 rows tall |
 
-The panda's poses started from the pixel art in `art/panda.png` and were redrawn with a clean outline. All the characters are original; none is based on someone else's character.
+All the characters are original; none is based on someone else's character.
 
 ## License
 
