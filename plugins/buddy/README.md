@@ -73,9 +73,22 @@ Then run `/reload-plugins` in an open session, or start a new one.
 | `/buddy poke` | Poke it: it does its move, a jump, a roll, a belly-slide, a burrow, or hiding in its shell |
 | `/buddy snack` | Snack time: bamboo, a mouse, a fish, a fly, a bat, seaweed, crumbs or lettuce |
 
-## How it works
+## How it works: the hooks
 
-Buddy is a Claude Code mod: a hooks module (`hooks/register.tsx`) that draws in the band above the prompt and listens for a few events: you sending a message, Claude starting and finishing a turn, and each tool call. From a tool call it only looks at the tool's name and, for shell commands, whether it's a `git commit` or `git push`. It runs ten frames a second and only redraws when the picture changes. Your choice of buddy, and whether it's hidden, are saved with the plugin, so they carry over between sessions.
+Buddy is a Claude Code mod: a single hooks module, `hooks/register.tsx`, listed in `hooks/hooks.json`. It only draws the buddy and reacts to what's happening. It never blocks, changes or delays anything: every hook passes the event on unchanged. It makes no model calls and no network requests, and runs no commands.
+
+| Hook | What it does |
+| --- | --- |
+| `session.start` | Loads the buddy you picked last time, registers the `/buddy` command, and starts a timer that steps the animation ten times a second (it only redraws when the picture changes) |
+| `classic.SessionStart` (on `/clear`, `/resume` and branching) | Loads your saved buddy again, since those reset the session's state |
+| `command.run` (`/buddy`) | Switches, hides, shows, pokes or feeds the buddy. With no argument it asks which buddy you want |
+| `prompt.submit` | When you send a message, the buddy jumps and replies in a speech bubble. It looks at your message's text only to pick a reply (for example, mentioning a bug); the text isn't stored or sent anywhere |
+| `turn.start` | Claude started working: the buddy runs about |
+| `tool.call` | A small hop on each tool call, and a "?" while Claude asks you a question (`AskUserQuestion`). For shell commands it checks whether the command is a `git commit` or `git push`, for the confetti. It doesn't read or change any tool's input or output beyond that |
+| `turn.complete` | Claude finished: a happy jump, or an upset look if the turn failed or was interrupted |
+| `ui.render` (`AbovePrompt`) | Draws the buddy in the band above the prompt: half-block pixel art in the terminal, a pixel SVG in the desktop app |
+
+The only things it saves are which buddy you picked and whether it's hidden, in the plugin's own storage, so they carry over between sessions.
 
 ## Troubleshooting
 
