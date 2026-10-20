@@ -4,17 +4,29 @@ A pixel buddy for [Claude Code](https://code.claude.com) that lives in the band 
 
 ![Every buddy as drawn in the terminal: panda, dino, cat, penguin and frog; ghost, crab, rubber duck, snail and the panda walking; and the forest](docs/preview.png)
 
-- **You send a message:** it jumps and reacts to what you wrote. The panda curls up and rolls, the penguin belly-slides, the crab burrows and the frog leaps a body length instead.
-- **Claude is working:** it runs back and forth, hopping on each tool call.
-- **Claude finishes:** a happy double jump. The dino puts its shades on.
-- **Something goes wrong:** it gets upset. The snail hides in its shell, and the duck's feathers ruffle.
-- **A `git commit` or `git push`:** confetti, a happy jump, and "committed!" or "shipped!".
-- **Claude asks you a question:** it shows a "?" until you've answered.
-- **A long wait:** if nothing happens for a while during Claude's turn, it yawns.
-- **Idle:** it wanders and now and then has a snack.
-- **Nothing for a minute:** it naps.
+## Features
 
-It draws pixel art in the terminal, and a crisp pixel sprite in the desktop app's Code tab. It makes no model calls and no network requests, so it costs nothing to run.
+**It reacts to you**
+- **You send a message:** it jumps and answers what you wrote in a speech bubble, in its own voice. Mention a bug and the cat goes "\*pounces\*"; ask the rubber duck a question and it asks you to explain it, line by line.
+- **`/buddy poke`:** it does its signature move: the dino jumps, the panda curls up and rolls, the penguin belly-slides, the crab burrows and the snail hides in its shell.
+- **`/buddy snack`:** snack time, a different one for each buddy (see below).
+
+**It notices what Claude is doing**
+- **Claude is working:** it runs back and forth, hopping on every tool call.
+- **Claude finishes:** a happy double jump. The dino puts its shades on.
+- **A `git commit` or `git push`:** confetti rains down, it jumps for joy and says "committed!" or "shipped!".
+- **Claude asks you a question:** a "?" pops up and stays until you've answered.
+- **A long wait:** if nothing happens for a while during Claude's turn, it yawns.
+- **Something goes wrong:** an error or an interrupted turn upsets it. The snail hides in its shell and the duck's feathers ruffle.
+
+**It has a life of its own**
+- **Idle,** it wanders the band and now and then has a snack. The panda sits down with bamboo, the cat chases a mouse that runs in from the edge of the screen, and the frog watches a fly buzz about until it comes close enough to zap.
+- **Nothing for a minute:** it dozes off. In the forest, night falls.
+- **It remembers** which buddy you picked, and whether it's hidden, between sessions.
+
+**It costs nothing**
+- No model calls and no network requests: it's drawn locally from hand-made pixel art.
+- It works in the terminal (half-block pixel art) and in the desktop app's Code tab (a crisp pixel sprite).
 
 ## The buddies
 
