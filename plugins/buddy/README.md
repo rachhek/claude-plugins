@@ -75,7 +75,9 @@ Then run `/reload-plugins` in an open session, or start a new one.
 
 ## How it works: the hooks
 
-Buddy is a Claude Code mod: a single hooks module, `hooks/register.tsx`, listed in `hooks/hooks.json`. It only draws the buddy and reacts to what's happening. It never blocks, changes or delays anything: every hook passes the event on unchanged. It makes no model calls and no network requests, and runs no commands.
+Buddy is a Claude Code mod: a single hooks module, `hooks/register.tsx`, listed in `hooks/hooks.json`. **What the hooks do:** draw the buddy and make it react to what's happening.
+
+**What the hooks change:** nothing. They never block, rewrite or delay a prompt, a tool call or a turn: every hook passes its event on unchanged. It makes no model calls and no network requests, and runs no commands.
 
 | Hook | What it does |
 | --- | --- |
