@@ -18,7 +18,7 @@ Then install any plugin below with `claude plugin install <name>@rachhek`, or br
 | --- | --- |
 | [buddy](plugins/buddy) | A pixel buddy above your prompt: a panda, dino, cat, penguin, frog, ghost, crab, rubber duck, snail, or a whole little forest. It jumps at your messages, runs while Claude works and naps when you're away |
 
-![Every buddy, as drawn in the terminal](plugins/buddy/docs/preview.png)
+<img src="plugins/buddy/docs/buddies.png" width="600" alt="Pick your buddy: every buddy in buddy">
 
 ## Develop
 

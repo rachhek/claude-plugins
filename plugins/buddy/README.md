@@ -2,7 +2,7 @@
 
 A pixel buddy for [Claude Code](https://code.claude.com) that lives in the band above your prompt. Pick a panda, a dino, a cat, a penguin, a frog, a ghost, a crab, a rubber duck, a snail, or a whole little forest. It reacts to what you and Claude are doing.
 
-![Every buddy as drawn in the terminal: panda, dino, cat, penguin and frog; ghost, crab, rubber duck, snail and the panda walking; and the forest](docs/preview.png)
+<img src="docs/buddies.png" width="600" alt="Pick your buddy: panda, dino, cat, penguin, frog, ghost, crab, duck, snail and the forest">
 
 ## Features
 
@@ -27,6 +27,12 @@ A pixel buddy for [Claude Code](https://code.claude.com) that lives in the band 
 **It costs nothing**
 - No model calls and no network requests: it's drawn locally from hand-made pixel art.
 - It works in the terminal (half-block pixel art) and in the desktop app's Code tab (a crisp pixel sprite).
+
+<p>
+  <img src="docs/panda-snack.png" width="32%" alt="The panda eating bamboo, saying nom">
+  <img src="docs/frog-snack.png" width="32%" alt="The frog zapping a fly with its tongue">
+  <img src="docs/terminal-and-desktop.png" width="32%" alt="The panda in the terminal and in the desktop app">
+</p>
 
 ## The buddies
 
