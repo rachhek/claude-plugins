@@ -7,6 +7,5 @@
   "homepage": "https://github.com/rachhek/claude-plugins/tree/main/plugins/buddy",
   "repository": "https://github.com/rachhek/claude-plugins",
   "license": "MIT",
-  "keywords": ["mod", "fun", "pixel-art", "companion"],
-  "types": "./types/index.d.ts"
+  "keywords": ["mod", "fun", "pixel-art", "companion"]
 }
