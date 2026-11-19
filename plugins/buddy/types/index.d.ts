@@ -14,6 +14,8 @@ export type Critter = {
 
 export type Kind = 'panda' | 'dino' | 'cat' | 'penguin' | 'frog' | 'ghost' | 'crab' | 'duck' | 'snail' | 'forest'
 
+export type Size = 'normal' | 'small'
+
 export type Scene = {
   /** Column of the buddy's left edge */
   x: number
@@ -51,6 +53,7 @@ declare module 'claude-code' {
     buddy: {
       scene: Scene
       kind: Kind
+      size: Size
       isHidden: boolean
     }
   }

@@ -41,8 +41,6 @@ export type Cell = { ch: string; fg?: string; bg?: string }
 
 export type TerminalDrawing = {
   rows: Cell[][]
-  ground: string
-  groundColor: string
   /** Columns the drawing starts left of the buddy, for something running ahead of it */
   offset?: number
 }

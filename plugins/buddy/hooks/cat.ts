@@ -7,75 +7,121 @@ import type { Character } from './shared'
 //
 // Pixels: O fur, o stripes, far legs and shut eyes, W white chest and muzzle, E eyes,
 // P nose, blush and the mouse's ear and tail, M mouse
-const W = 16
-const H = 14
 const AIR = 4
 
-const BODY = [
-  '...........O..O.',
-  '.O.........OOOO.',
-  'O.........OOOOOO',
-  'O.........OOOEOO',
-  'O.........OOOOWP',
-  '.OOOOoOOoOOOWW..',
-  '..OOOoOOoOOOWW..',
-  '..OOOoOOoOOOWW..',
-  '..OOOOOOOOOOW...',
-  '...OOOOOOOOOO...',
-]
-
-const LEGS: Record<Exclude<Legs, 'sit'>, string[]> = {
-  stand: ['...OO.....OO....', '...OO.....OO....', '...OO.....OO....', '...OO.....OO....'],
-  // Walking: all four legs apart (the far two darker), then only the near two
-  a: ['..OO.oo..oo.OO..', '..OO.oo..oo.OO..', '.OO..oo..oo..OO.', '.OO..oo..oo..OO.'],
-  b: ['...OO.....OO....', '...OO.....OO....', '..OO.......OO...', '..OO.......OO...'],
+// One size of cat: its body, legs and mouse, and where its eye and blush go
+type Art = {
+  body: string[]
+  legs: Record<Exclude<Legs, 'sit'>, string[]>
+  /** The row its folded legs make, under the lowered body, sitting */
+  seat: string
+  eye: [number, number]
+  blush: [number, number]
+  /** The mouse, facing right, in two steps */
+  mouse: string[][]
+  /** Columns the mouse runs in ahead of the cat: two clear, then the mouse */
+  lane: number
 }
 
-function sprite(s: Scene, cols: number): string[] {
-  const body = [...BODY]
-  if (s.isAsleep || s.isBlinking) put(body, 3, 13, 'o')
+const NORMAL: Art = {
+  body: [
+    '...........O..O.',
+    '.O.........OOOO.',
+    'O.........OOOOOO',
+    'O.........OOOEOO',
+    'O.........OOOOWP',
+    '.OOOOoOOoOOOWW..',
+    '..OOOoOOoOOOWW..',
+    '..OOOoOOoOOOWW..',
+    '..OOOOOOOOOOW...',
+    '...OOOOOOOOOO...',
+  ],
+  legs: {
+    stand: ['...OO.....OO....', '...OO.....OO....', '...OO.....OO....', '...OO.....OO....'],
+    // Walking: all four legs apart (the far two darker), then only the near two
+    a: ['..OO.oo..oo.OO..', '..OO.oo..oo.OO..', '.OO..oo..oo..OO.', '.OO..oo..oo..OO.'],
+    b: ['...OO.....OO....', '...OO.....OO....', '..OO.......OO...', '..OO.......OO...'],
+  },
+  seat: '...OOOOOOOOOO...',
+  eye: [3, 13],
+  blush: [4, 12],
+  mouse: [
+    ['....P.', '.MMMEP', 'P.M.M.'],
+    ['....P.', '.MMMEP', 'PM...M'],
+  ],
+  lane: 8,
+}
+
+// The small cat (/buddy size small): the same poses redrawn smaller, never shrunk
+const SMALL: Art = {
+  body: [
+    '.........O.O.',
+    '.O......OOOOO',
+    'O.......OOEOO',
+    'O.......OOOWP',
+    '.OOOoOOoOOWW.',
+    '..OOoOOoOOWW.',
+    '..OOOOOOOOW..',
+    '...OOOOOOOO..',
+  ],
+  legs: {
+    stand: ['...OO...OO...', '...OO...OO...', '...OO...OO...'],
+    a: ['.OO.oo.oo.OO.', '.OO.oo.oo.OO.', 'OO..oo.oo..OO'],
+    b: ['...OO...OO...', '...OO...OO...', '..OO.....OO..'],
+  },
+  seat: '...OOOOOOOO..',
+  eye: [2, 10],
+  blush: [3, 9],
+  mouse: [
+    ['...P.', '.MMEP', 'P.M.M'],
+    ['...P.', '.MMEP', 'PM..M'],
+  ],
+  lane: 7,
+}
+
+const width = (a: Art) => a.body[0]?.length ?? 0
+const height = (a: Art) => a.body.length + a.legs.stand.length
+
+function sprite(a: Art, s: Scene, cols: number): string[] {
+  const W = width(a)
+  const H = height(a)
+  const body = [...a.body]
+  const [er, ec] = a.eye
+  if (s.isAsleep || s.isBlinking) put(body, er, ec, 'o')
   else if (s.isHappy) {
     // Content: eyes shut, a little blush
-    put(body, 3, 13, 'o')
-    put(body, 4, 12, 'P')
+    put(body, er, ec, 'o')
+    put(body, a.blush[0], a.blush[1], 'P')
   }
   // Sitting, its body lowers onto its folded legs
   const rows =
     s.legs === 'sit'
-      ? [...Array<string>(H - BODY.length - 1).fill('.'.repeat(W)), ...body, '...OOOOOOOOOO...']
-      : [...body, ...LEGS[s.legs]]
+      ? [...Array<string>(H - a.body.length - 1).fill('.'.repeat(W)), ...body, a.seat]
+      : [...body, ...a.legs[s.legs]]
   if (!s.isMunching) return mirror(rows, s.dir)
   if (s.snack < APPROACH) {
     // A mouse dashes in from the edge of the screen towards the cat, slowing as it gets close
     const room = roomAhead(s.x, s.dir, W, cols)
-    const mouse = (MOUSE[s.snack % 2] ?? []).map(m => [...m].reverse().join(''))
+    const mouse = (a.mouse[s.snack % 2] ?? []).map(m => [...m].reverse().join(''))
     const wide = rows.map(r => r + '.'.repeat(room))
     stamp(wide, H - mouse.length, W + comingIn(s.snack, APPROACH - 1, room + 1, 2), mouse)
     return mirror(wide, s.dir)
   }
   // Then it turns tail: the chase, the mouse scurrying a little way ahead
-  const mouse = MOUSE[s.legs === 'b' ? 1 : 0] ?? []
+  const mouse = a.mouse[s.legs === 'b' ? 1 : 0] ?? []
   const top = H - mouse.length
-  const wide = rows.map((r, i) => r + '..' + (mouse[i - top] ?? '.'.repeat(LANE - 2)))
+  const wide = rows.map((r, i) => r + '..' + (mouse[i - top] ?? '.'.repeat(a.lane - 2)))
   return mirror(wide, s.dir)
 }
 
-// The mouse, facing right, in two steps; it runs in a lane this wide ahead of the cat
-const MOUSE = [
-  ['....P.', '.MMMEP', 'P.M.M.'],
-  ['....P.', '.MMMEP', 'PM...M'],
-]
-const LANE = 8
-
 // Columns the drawing starts left of the cat, when the mouse is on its left:
 // out to the screen edge while it comes in, then the lane
-const offset = (s: Scene, cols: number) =>
-  !s.isMunching || s.dir === 1 ? 0 : s.snack < APPROACH ? roomAhead(s.x, s.dir, W, cols) : LANE
+const offset = (a: Art, s: Scene, cols: number) =>
+  !s.isMunching || s.dir === 1 ? 0 : s.snack < APPROACH ? roomAhead(s.x, s.dir, width(a), cols) : a.lane
 
 const TERM = { O: '#e8954a', o: '#b8662a', W: '#f4efe6', E: '#2a2420', P: '#e98f9a', M: '#9c9c9c' }
 const SVG = { O: '#e08a3c', o: '#a95a22', W: '#f4efe6', E: '#231d1a', P: '#e2808c', M: '#8f8f8f' }
 
-const GROUND = "_.____'______._____,____"
 
 const PX = 6
 const CELL = 8
@@ -93,53 +139,58 @@ function react(text: string): string {
   return pick(['meow.', 'mrrp!', '*stretches*', 'meh.', '*blinks*'])
 }
 
-export const cat: Character = {
-  width: W,
-  canMunch: true,
-  rolls: false,
-  stride: 0,
-  pace: 1,
-  snackLane: LANE,
-  chases: true,
+function build(a: Art): Character {
+  const W = width(a)
+  const H = height(a)
+  // Pixel rows: the cat and the highest jump, kept even so its feet sit on the bottom row
+  const termRows = H + AIR + ((H + AIR) % 2)
+  return {
+    width: W,
+    canMunch: true,
+    rolls: false,
+    stride: 0,
+    pace: 1,
+    snackLane: a.lane,
+    chases: true,
 
-  terminal(s, cols) {
-    let ground = ''
-    for (let i = 0; i < cols; i++) ground += GROUND[(i + s.ground) % GROUND.length]
-    const sp = sprite(s, cols)
-    return {
-      rows: halfBlocks(sp, AIR - s.air, sp[0]?.length ?? W, H + AIR, TERM),
-      ground,
-      groundColor: 'gray',
-      offset: offset(s, cols),
-    }
-  },
+    terminal(s, cols) {
+      const sp = sprite(a, s, cols)
+      return {
+        rows: halfBlocks(sp, termRows - H - s.air, sp[0]?.length ?? W, termRows, TERM),
+        offset: offset(a, s, cols),
+      }
+    },
 
-  svg(s, cols) {
-    const sp = sprite(s, cols)
-    const w = cols * CELL
-    const size = W * PX
-    const groundY = H * PX + AIR * LIFT + 3 * PX
-    const h = groundY + 3 * PX
-    const ox = s.x * CELL
-    const oy = groundY - H * PX - s.air * LIFT
+    svg(s, cols) {
+      const sp = sprite(a, s, cols)
+      const w = cols * CELL
+      const size = W * PX
+      const groundY = H * PX + AIR * LIFT + 3 * PX
+      const h = groundY + 3 * PX
+      const ox = s.x * CELL
+      const oy = groundY - H * PX - s.air * LIFT
 
-    return (
-      svgOpen(w, h) +
-      `<rect x="0" y="${groundY}" width="${w}" height="2" fill="#8b8f87"/>` +
-      shadowSvg(s, ox, size, groundY, PX) +
-      pixels(sp, ox - offset(s, cols) * PX, oy, PX, SVG) +
-      bubbleSvg(s, ox, oy, size, w, PX) +
-      `</svg>`
-    )
-  },
+      return (
+        svgOpen(w, h) +
+        `<rect x="0" y="${groundY}" width="${w}" height="2" fill="#8b8f87"/>` +
+        shadowSvg(s, ox, size, groundY, PX) +
+        pixels(sp, ox - offset(a, s, cols) * PX, oy, PX, SVG) +
+        bubbleSvg(s, ox, oy, size, w, PX) +
+        `</svg>`
+      )
+    },
 
-  lines: {
-    hi: 'mrrp?',
-    jump: '*pounce*',
-    done: ['purrfect.', '*purrs*', 'done. pet me.'],
-    abort: 'hmph.',
-    error: '*hiss*',
-    snack: ['*pounce*', 'mouse!!', 'get back here!'],
-    react,
-  },
+    lines: {
+      hi: 'mrrp?',
+      jump: '*pounce*',
+      done: ['purrfect.', '*purrs*', 'done. pet me.'],
+      abort: 'hmph.',
+      error: '*hiss*',
+      snack: ['*pounce*', 'mouse!!', 'get back here!'],
+      react,
+    },
+  }
 }
+
+export const cat = build(NORMAL)
+export const catSmall = build(SMALL)

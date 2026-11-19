@@ -69,6 +69,7 @@ Then run `/reload-plugins` in an open session, or start a new one.
 | --- | --- |
 | `/buddy` | Pick your buddy from a menu |
 | `/buddy panda`, `dino`, `cat`, `penguin`, `frog`, `ghost`, `crab`, `duck`, `snail`, `forest` | Switch buddy (remembered between sessions) |
+| `/buddy size small`, `/buddy size normal` | A smaller buddy, redrawn rather than shrunk so it stays crisp, or back to its normal size (remembered between sessions; the forest has one size) |
 | `/buddy off`, `/buddy on` | Hide or show it |
 | `/buddy poke` | Poke it: it does its move, a jump, a roll, a belly-slide, a burrow, or hiding in its shell |
 | `/buddy snack` | Snack time: bamboo, a mouse, a fish, a fly, a bat, seaweed, crumbs or lettuce |
@@ -116,18 +117,20 @@ Each buddy lives in its own file in `hooks/` (`panda.ts`, `dino.ts`, `cat.ts`, `
 
 Every buddy is pixel art drawn by hand as rows of letters, one letter per pixel, in its own file. In the terminal each text cell shows two pixels stacked (half-block characters), and nothing is ever resized, so the art stays crisp. In the desktop app each pixel is a 6 px square.
 
-| Buddy | Size (pixels) |
-| --- | --- |
-| dino | 14 × 10 |
-| cat | 16 × 14 |
-| ghost | 16 × 14 |
-| panda | 17 × 17 sitting, 23 × 16 walking |
-| frog | 18 × 14 |
-| penguin | 19 × 17 |
-| snail | 19 × 14 |
-| crab | 20 × 12 |
-| duck | 20 × 14 |
-| forest | the full width of the band, 18 rows tall |
+`/buddy size small` switches to a second, smaller set of the same art, drawn by hand at about three-quarters the height.
+
+| Buddy | Size (pixels) | Small |
+| --- | --- | --- |
+| dino | 14 × 10 | 9 × 6 |
+| cat | 16 × 14 | 13 × 11 |
+| ghost | 16 × 14 | 13 × 11 |
+| panda | 17 × 17 sitting, 23 × 16 walking | 13 × 14 sitting, 17 × 13 walking |
+| frog | 18 × 14 | 14 × 10 |
+| penguin | 19 × 17 | 16 × 13 |
+| snail | 19 × 14 | 17 × 11 |
+| crab | 20 × 12 | 16 × 9 |
+| duck | 20 × 14 | 16 × 11 |
+| forest | the full width of the band, 18 rows tall | one size |
 
 All the characters are original; none is based on someone else's character.
 

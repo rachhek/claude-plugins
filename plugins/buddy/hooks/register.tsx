@@ -1,17 +1,17 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Critter, Kind, Legs, Scene } from '../types'
-import { cat } from './cat'
-import { crab } from './crab'
-import { dino } from './dino'
-import { duck } from './duck'
+import type { Critter, Kind, Legs, Scene, Size } from '../types'
+import { cat, catSmall } from './cat'
+import { crab, crabSmall } from './crab'
+import { dino, dinoSmall } from './dino'
+import { duck, duckSmall } from './duck'
 import { forest } from './forest'
-import { frog } from './frog'
-import { ghost } from './ghost'
-import { panda } from './panda'
-import { penguin } from './penguin'
-import { snail } from './snail'
+import { frog, frogSmall } from './frog'
+import { ghost, ghostSmall } from './ghost'
+import { panda, pandaSmall } from './panda'
+import { penguin, penguinSmall } from './penguin'
+import { snail, snailSmall } from './snail'
 import { APPROACH, pick, runs } from './shared'
 import type { Cell, Character } from './shared'
 
@@ -22,6 +22,20 @@ import type { Cell, Character } from './shared'
 // happened for a while. /buddy picks which one.
 
 const CHARACTERS: Record<Kind, Character> = { dino, panda, cat, penguin, frog, ghost, crab, duck, snail, forest }
+// /buddy size small: each buddy redrawn smaller; the forest fills the band, so it stays as it is
+const SMALL: Record<Kind, Character> = {
+  dino: dinoSmall,
+  panda: pandaSmall,
+  cat: catSmall,
+  penguin: penguinSmall,
+  frog: frogSmall,
+  ghost: ghostSmall,
+  crab: crabSmall,
+  duck: duckSmall,
+  snail: snailSmall,
+  forest,
+}
+const look = (k: Kind, z: Size) => (z === 'small' ? SMALL : CHARACTERS)[k]
 // What to call it: "the panda", but a scene by its name ("Forest")
 const nameOf = (k: Kind) =>
   CHARACTERS[k].width > 0 ? `the ${k}` : k.charAt(0).toUpperCase() + k.slice(1)
@@ -53,9 +67,11 @@ const INITIAL: Scene = {
 const scene = atom({ plugin: 'buddy', key: 'scene' } as const, INITIAL)
 const kindAtom = atom({ plugin: 'buddy', key: 'kind' } as const, 'panda' as Kind)
 const isHidden = atom({ plugin: 'buddy', key: 'isHidden' } as const, false)
+const sizeAtom = atom({ plugin: 'buddy', key: 'size' } as const, 'normal' as Size)
 
 // The physics lives in module variables and is copied into $.state on each tick
 let kind: Kind = 'panda'
+let size: Size = 'normal'
 let x = INITIAL.x
 let dir: 1 | -1 = 1
 let ground = 0
@@ -87,7 +103,7 @@ const SLEEP_AFTER_TICKS = 600 // one minute
 const JUMP = [2, 3, 4, 4, 4, 3, 2, 1, 0]
 const HOP = [1, 2, 1, 0]
 
-const me = () => CHARACTERS[kind]
+const me = () => look(kind, size)
 
 const GULP = 10 // ticks from the tongue hitting a critter to it being gone
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
@@ -311,11 +327,14 @@ function step(): Scene {
   }
 }
 
-// Load what earlier sessions saved: which buddy, and whether it's hidden
+// Load what earlier sessions saved: which buddy, its size, and whether it's hidden
 async function loadSaved($: EngineInterface) {
   const savedKind = await $.store.get('kind')
   if (isKind(savedKind)) kind = savedKind
   await update($, kindAtom, () => kind)
+  const savedSize = await $.store.get('size')
+  if (savedSize === 'small' || savedSize === 'normal') size = savedSize
+  await update($, sizeAtom, () => size)
   const savedHidden = await $.store.get('isHidden')
   await update($, isHidden, () => savedHidden === true)
 }
@@ -330,6 +349,14 @@ async function choose($: EngineInterface, next: Kind) {
   hello()
 }
 
+async function resize($: EngineInterface, next: Size) {
+  size = next
+  critter = null
+  await update($, sizeAtom, () => next)
+  await $.store.set('size', next)
+  hello()
+}
+
 async function setHidden($: EngineInterface, hide: boolean) {
   await update($, isHidden, () => hide)
   await $.store.set('isHidden', hide)
@@ -338,7 +365,7 @@ async function setHidden($: EngineInterface, hide: boolean) {
 // ---------------------------------------------------------------- hooks
 
 const PERSON_ORIGINS = new Set(['composer', 'bridge', 'sdk', 'unclassified'])
-const USAGE = 'Usage: /buddy [panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | on | off | poke | snack]'
+const USAGE = 'Usage: /buddy [panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | size small | size normal | on | off | poke | snack]'
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -355,8 +382,8 @@ export const register: Register = on => {
     try {
       await $.command.register({
         name: 'buddy',
-        description: 'Pick your buddy (panda, dino, cat, penguin, frog, ghost, crab, duck, snail, or forest), or show, hide or poke it',
-        argumentHint: '[panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | on | off | poke | snack]',
+        description: 'Pick your buddy (panda, dino, cat, penguin, frog, ghost, crab, duck, snail, or forest), its size, or show, hide or poke it',
+        argumentHint: '[panda | dino | cat | penguin | frog | ghost | crab | duck | snail | forest | size small | size normal | on | off | poke | snack]',
         immediate: true,
       })
     } catch {
@@ -377,6 +404,11 @@ export const register: Register = on => {
     if (isKind(arg)) {
       await choose($, arg)
       return { text: `Your buddy is now ${nameOf(arg)}.` }
+    }
+    if (arg === 'size small' || arg === 'size normal') {
+      const next = arg === 'size small' ? 'small' : 'normal'
+      await resize($, next)
+      return { text: `Your buddy is now ${next === 'small' ? 'small' : 'its normal size'}.` }
     }
     if (arg === 'off' || arg === 'hide') {
       await setHidden($, true)
@@ -488,7 +520,7 @@ export const register: Register = on => {
     if (e.props.hasSurvey || (await read($, isHidden))) return next(e)
     if (e.surface !== 'terminal' && e.surface !== 'desktop') return next(e)
 
-    const who = CHARACTERS[await read($, kindAtom)]
+    const who = look(await read($, kindAtom), await read($, sizeAtom))
     cols = Math.max(who.width + 2, e.props.bodyColumns)
     const s = await read($, scene)
     const x = Math.min(s.x, Math.max(0, cols - who.width - 1))
@@ -500,8 +532,8 @@ export const register: Register = on => {
       ours = <Svg source={confettiSvg(who.svg(at, cols), who.width ? x : 0, who.width || cols)} alt={s.bubble ? `Your buddy says: ${s.bubble}` : 'Your buddy'} />
     } else {
       const { Box, Text } = $.ui.resolve(e)
-      // Pixel rows the band has room for, less one text row for the ground
-      const drawing = who.terminal(at, cols, (e.props.maxRows - 1) * 2)
+      // Pixel rows the band has room for
+      const drawing = who.terminal(at, cols, e.props.maxRows * 2)
       sprinkle(drawing.rows)
       // Never past either edge of the band: a row too wide gets squeezed and comes out garbled
       const drawn = drawing.rows[0]?.length ?? who.width
@@ -550,14 +582,7 @@ export const register: Register = on => {
           </Box>
         )
       })
-      ours = (
-        <Box flexDirection="column">
-          {lines}
-          <Text color={drawing.groundColor} dimColor wrap="truncate">
-            {drawing.ground}
-          </Text>
-        </Box>
-      )
+      ours = <Box flexDirection="column">{lines}</Box>
     }
 
     // Keep whatever other mods draw in the band, below the buddy

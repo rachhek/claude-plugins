@@ -39,7 +39,7 @@ test('the panda is the default, drawn as text in the terminal and an SVG on the 
 
   const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await term.find({ type: 'Text', text: /yo\./ })).toBeDefined()
-  expect(await term.find({ type: 'Text', text: /\.,\.\./ })).toBeDefined()
+  expect(await term.find({ type: 'Text', text: /[█▀▄]/ })).toBeDefined()
   await term.unmount()
 
   const desk = await $.ui.mount({ ...BAND, surface: 'desktop' })
@@ -55,7 +55,7 @@ test('/buddy dino switches to the dino', async ($, on) => {
 
   const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await term.find({ type: 'Text', text: /rawr/ })).toBeDefined()
-  expect(await term.find({ type: 'Text', text: /____/ })).toBeDefined()
+  expect(await term.find({ type: 'Text', text: /[█▀▄]/ })).toBeDefined()
   await term.unmount()
 })
 
@@ -67,7 +67,7 @@ test('/buddy panda switches to the panda, which reacts in its own words', async 
 
   let term = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await term.find({ type: 'Text', text: /yo\./ })).toBeDefined()
-  expect(await term.find({ type: 'Text', text: /\.,\.\./ })).toBeDefined()
+  expect(await term.find({ type: 'Text', text: /[█▀▄]/ })).toBeDefined()
   await term.unmount()
 
   await $.prompt.submit({ text: 'please fix this bug', origin: { kind: 'composer' }, wait: false })
@@ -116,6 +116,26 @@ test('/buddy cat switches to the cat; unknown names are refused', async ($, on) 
   expect(res.text).toMatch(/Usage/)
 })
 
+for (const kind of ['panda', 'dino', 'cat', 'penguin', 'frog', 'ghost', 'crab', 'duck', 'snail']) {
+  test(`/buddy size small draws the ${kind} on fewer rows`, async ($, on) => {
+    const clock = setUp(on)
+    await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'buddy', args: kind, ...RUN })
+    const rows = async () => {
+      await clock.advance(2000)
+      const term = await $.ui.mount({ ...BAND, surface: 'terminal' })
+      const n = (await term.findAll({ type: 'Box' })).length
+      await term.unmount()
+      return n
+    }
+    const normal = await rows()
+    await $.command.run({ command: 'buddy', args: 'size small', ...RUN })
+    expect(await rows()).toBeLessThan(normal)
+    await $.command.run({ command: 'buddy', args: 'size normal', ...RUN })
+    expect(await rows()).toBe(normal)
+  })
+}
+
 test('turn rotates a sprite a quarter clockwise', () => {
   expect(turn(['ab', 'cd'])).toEqual(['ca', 'db'])
   const s = ['abc', 'def']
@@ -155,8 +175,8 @@ test('/buddy snack sends the cat after a mouse', async ($, on) => {
   await desk.unmount()
 })
 
-for (const kind of ['panda', 'dino', 'cat', 'penguin', 'frog', 'ghost', 'crab', 'duck', 'snail', 'forest']) {
-  test(`the ${kind} draws through walking, jumping, its snack, happy and asleep`, async ($, on) => {
+for (const [kind, size] of ['panda', 'dino', 'cat', 'penguin', 'frog', 'ghost', 'crab', 'duck', 'snail', 'forest'].flatMap(k => [[k, 'normal'], [k, 'small']])) {
+  test(`the ${size} ${kind} draws through walking, jumping, its snack, happy and asleep`, async ($, on) => {
     const clock = setUp(on)
     on('turn.complete', async () => ({ text: '' }))
     await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
@@ -173,6 +193,7 @@ for (const kind of ['panda', 'dino', 'cat', 'penguin', 'frog', 'ghost', 'crab', 
         await draws()
       }
     }
+    await $.command.run({ command: 'buddy', args: `size ${size}`, ...RUN })
     await $.command.run({ command: 'buddy', args: kind, ...RUN })
     await through(12) // hello jump, then walking
     await $.command.run({ command: 'buddy', args: 'poke', ...RUN })

@@ -21,8 +21,8 @@ in `hooks/shared.ts`. How to contribute: `CONTRIBUTING.md` at the repo root.
 - **Never draw past the band's edges.** A row wider than the band gets
   squeezed and its pixels come out garbled, so anything drawn beyond a
   character's `width` (like the cat's mouse) must turn around in time.
-- **Size limits.** Height is at most two pixel rows per text row in the band,
-  less one row for the ground (`(maxRows - 1) * 2`). The panda, the biggest,
+- **Size limits.** Height is at most two pixel rows per text row in the band
+  (`maxRows * 2`). There is no ground line in the terminal; it took a row. The panda, the biggest,
   is 17 × 17 sitting and 23 × 16 walking, with room to jump in 22 pixel rows.
   Width is free, but `width` on the character is what the engine uses to keep
   it on screen.
@@ -92,6 +92,13 @@ Blinking, eating and other changes are drawn over the base sprite with `put`.
 
 To add a character: a new file in `hooks/`, an entry in `CHARACTERS` in
 `register.tsx`, its name in `Kind` in `types/index.d.ts`, and the README.
+
+Every character comes in two sizes (`/buddy size small`): its file keeps the
+art and every coordinate drawn over it in an `Art` object, builds the
+character with `build(art)`, and exports both (`panda` and `pandaSmall`). The
+small one goes in `SMALL` in `register.tsx`. The small art is redrawn by hand
+at about three-quarters the height, never shrunk, and must take fewer pixel
+rows than the normal one.
 
 ## Working on the art
 

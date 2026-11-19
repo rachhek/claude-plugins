@@ -9,8 +9,28 @@ import type { Character } from './shared'
 // Pixels: E outline and eyes, K dark back, k lighter flipper, W white belly and face,
 // S shaded white, w eye glint, Y beak and feet, y far foot, P blush,
 // B fish, b fish belly
-const W = 19
-const H = 17 // the body, a pixel to bob up into, and its feet
+
+// One size of penguin: its body, feet, flippers, faces, slide and fish
+type Art = {
+  /** Columns the penguin takes */
+  w: number
+  body: string[]
+  /** Feet planted, the body settled down onto them */
+  planted: string[]
+  /** A step, the body bobbed up a pixel: the near foot lifted forward, or the far one */
+  step: { near: string[]; far: string[] }
+  /** The near flipper, laid over the body from a row */
+  flipper: Record<'down' | 'out' | 'up', [number, string[]]>
+  /** Happy eyes curved shut with a blush, and blinking eyes, laid over the body from a row */
+  happy: [number, string[]]
+  blink: [number, string[]]
+  slide: string[]
+  /** The fish, flat then flicking its tail up */
+  fish: string[][]
+  /** Columns the fish flops in ahead of the penguin */
+  lane: number
+}
+
 const AIR = 3 // headroom (it slides rather than jumps, so little is needed)
 
 const BODY = [
@@ -40,7 +60,7 @@ const STEP = {
 
 // The near flipper, laid over the body from a row: hanging down, held out a
 // little for balance while it waddles, or raised in a happy flap
-const FLIPPER: Record<'down' | 'out' | 'up', [number, string[]]> = {
+const FLIPPER: Art['flipper'] = {
   down: [8, ['......EEE.', '.....EkkkE', '.....EkkkE', '.....EkkE.', '.....EkE..', '......E...']],
   out: [8, ['......EEE.', '.....EkkkEE', '.....EkkkkE', '.....EkkEE.', '.....EkE...', '......E....']],
   up: [3, ['EE........', 'EkEE......', '.EkkEE....', '..EkkkEE..', '...EEkkkE.', '.....EEEE.']],
@@ -50,9 +70,8 @@ const FLIPPER: Record<'down' | 'out' | 'up', [number, string[]]> = {
 // one foot lifted, then settling back with both down; the feet take turns
 // (the step changes with every other column it moves)
 
-// Belly-sliding, flippers back and feet trailing; padded to the full height
+// Belly-sliding, flippers back and feet trailing
 const SLIDE = [
-  ...Array<string>(H - 8).fill('.'.repeat(W)),
   '........EEEEE......',
   '.....EEEKKKKKE.....',
   '...EEKKKKKKWWWE....',
@@ -68,7 +87,62 @@ const FISH = [
   ['..EEEE.EE', '.EBBBBEBE', 'EBEBBBBBE', 'EBbbbbEBE', '.EEEEE.EE'],
   ['.......EE', '..EEEEEBE', '.EBBBBBE.', 'EBEBBBBE.', 'EBbbbbE..', '.EEEEE...'],
 ]
-const LANE = 11
+
+const NORMAL: Art = {
+  w: 19,
+  body: BODY,
+  planted: PLANTED,
+  step: STEP,
+  flipper: FLIPPER,
+  happy: [4, ['............E.....', '..........EWWE....', '............P.....']],
+  blink: [4, ['...........WW.....']],
+  slide: SLIDE,
+  fish: FISH,
+  lane: 11,
+}
+
+// The small penguin (/buddy size small): the same poses redrawn smaller, never shrunk
+const SMALL: Art = {
+  w: 16,
+  body: [
+    '....EEEEE.......',
+    '...EKKKKKEE.....',
+    '..EKKKKKKWWKE...',
+    '..EKKKKKWEwWKE..',
+    '..EKKKKKWEEWWEE.',
+    '..EKKKKKKWWWWYYE',
+    '..EKKKKKKWWWWYE.',
+    '..EKKKKKWWWWWE..',
+    '..EKKKKWWWWWSE..',
+    '...EKKKWWWWSE...',
+  ],
+  planted: ['....EyEYYYE.....', '....EEEEEEE.....'],
+  step: {
+    near: ['.....E..EYYYE...', '....EyE.EEEEE...', '....EEE.........'],
+    far: ['........EyE.....', '....EYYYEEE.....', '....EEEEE.......'],
+  },
+  flipper: {
+    down: [5, ['.....EE.', '....EkkE', '....EkkE', '....EkE.', '.....E..']],
+    out: [5, ['.....EE..', '....EkkEE', '....EkkkE', '....EkEE.', '.....E...']],
+    up: [1, ['EE......', 'EkEE....', '.EkkEE..', '..EEkkE.', '....EEE.']],
+  },
+  happy: [3, ['..........E.....', '........EWWE....', '..........P.....']],
+  blink: [3, ['.........WW.....']],
+  slide: [
+    '.......EEEE.....',
+    '....EEEKKKWWE...',
+    '..EEKKKKKWWEwEE.',
+    '.EKKkkkkKWWEEYYE',
+    'EEEkkkkEWWWWWYE.',
+    'EYEEEEEWWWWWWE..',
+    '.EEEEEEEEEEEE...',
+  ],
+  fish: [
+    ['.EEEE.EE', 'EBEBBBBE', 'EbbbbBBE', '.EEEE.EE'],
+    ['......EE', '.EEEEEBE', 'EBEBBBE.', 'EbbbbE..', '.EEEE...'],
+  ],
+  lane: 10,
+}
 
 // Chasing its fish, but not mid-slide (a slide can start while it's still munching)
 const chasing = (s: Scene) => s.isMunching && s.spin === 0
@@ -77,32 +151,36 @@ function over(rows: string[], top: number, pattern: string[]) {
   pattern.forEach((row, r) => [...row].forEach((p, c) => p !== '.' && put(rows, top + r, c, p)))
 }
 
-function sprite(s: Scene): string[] {
-  // Penguins don't jump, they slide on their bellies
-  if (s.spin > 0) return mirror(SLIDE, s.dir)
+/** Pixel rows of the sprite: the body, a pixel to bob up into, and its feet */
+const height = (a: Art) => a.body.length + 3
+
+function sprite(a: Art, s: Scene): string[] {
+  const h = height(a)
+  // Penguins don't jump, they slide on their bellies; padded to the full height
+  if (s.spin > 0) return mirror([...Array<string>(h - a.slide.length).fill('.'.repeat(a.w)), ...a.slide], s.dir)
   const legs = s.legs === 'sit' ? 'stand' : s.legs
-  const body = [...BODY]
+  const body = [...a.body]
   const flipper = s.isHappy ? 'up' : legs === 'stand' ? 'down' : 'out'
-  over(body, ...FLIPPER[flipper])
+  over(body, ...a.flipper[flipper])
   if (s.isHappy) {
     // Happy: eyes curved shut, a little blush
-    over(body, 4, ['............E.....', '..........EWWE....', '............P.....'])
+    over(body, ...a.happy)
   } else if (s.isAsleep || s.isBlinking) {
-    over(body, 4, ['...........WW.....'])
+    over(body, ...a.blink)
   }
   const rows =
     legs === 'a'
-      ? [...body, ...STEP[Math.floor(s.x / 2) % 2 ? 'near' : 'far']]
-      : ['.'.repeat(W), ...body, ...PLANTED]
+      ? [...body, ...a.step[Math.floor(s.x / 2) % 2 ? 'near' : 'far']]
+      : ['.'.repeat(a.w), ...body, ...a.planted]
   if (!chasing(s)) return mirror(rows, s.dir)
-  const fish = FISH[s.legs === 'b' ? 1 : 0] ?? []
-  const top = H - fish.length
-  const wide = rows.map((r, i) => r + '..' + (fish[i - top] ?? '.'.repeat(LANE - 2)))
+  const fish = a.fish[s.legs === 'b' ? 1 : 0] ?? []
+  const top = h - fish.length
+  const wide = rows.map((r, i) => r + '..' + (fish[i - top] ?? '.'.repeat(a.lane - 2)))
   return mirror(wide, s.dir)
 }
 
 // Columns the drawing starts left of the penguin: the lane, when the fish is on its left
-const offset = (s: Scene) => (chasing(s) && s.dir === -1 ? LANE : 0)
+const offset = (a: Art, s: Scene) => (chasing(s) && s.dir === -1 ? a.lane : 0)
 
 const TERM = {
   E: '#1e2026',
@@ -131,7 +209,6 @@ const SVG = {
   b: '#b9c9d4',
 }
 
-const ICE = "_.____-______.___'____-___"
 
 const PX = 6
 const CELL = 8
@@ -149,56 +226,59 @@ function react(text: string): string {
   return pick(['noot!', 'on it!', '*waddle*', 'ooh!', '*flap flap*'])
 }
 
-export const penguin: Character = {
-  width: W,
-  canMunch: true,
-  rolls: true,
-  stride: 0.5,
-  pace: 2, // a slow waddle
-  snackLane: LANE,
-  chases: true,
+function build(a: Art): Character {
+  const W = a.w
+  const H = height(a)
+  return {
+    width: W,
+    canMunch: true,
+    rolls: true,
+    stride: 0.5,
+    pace: 2, // a slow waddle
+    snackLane: a.lane,
+    chases: true,
 
-  terminal(s, cols) {
-    let ground = ''
-    for (let i = 0; i < cols; i++) ground += ICE[(i + s.ground) % ICE.length]
-    const sp = sprite(s)
-    return {
-      rows: halfBlocks(sp, AIR - s.air, sp[0]?.length ?? W, H + AIR, TERM),
-      ground,
-      groundColor: 'cyan',
-      offset: offset(s),
-    }
-  },
+    terminal(s, cols) {
+      const sp = sprite(a, s)
+      return {
+        rows: halfBlocks(sp, AIR - s.air, sp[0]?.length ?? W, H + AIR, TERM),
+        offset: offset(a, s),
+      }
+    },
 
-  svg(s, cols) {
-    const sp = sprite(s)
-    const w = cols * CELL
-    const size = W * PX
-    const groundY = H * PX + AIR * LIFT + 3 * PX
-    const h = groundY + 3 * PX
-    const ox = s.x * CELL
-    const oy = groundY - H * PX - s.air * LIFT
-    const left = ox - offset(s) * PX
+    svg(s, cols) {
+      const sp = sprite(a, s)
+      const w = cols * CELL
+      const size = W * PX
+      const groundY = H * PX + AIR * LIFT + 3 * PX
+      const h = groundY + 3 * PX
+      const ox = s.x * CELL
+      const oy = groundY - H * PX - s.air * LIFT
+      const left = ox - offset(a, s) * PX
 
-    return (
-      svgOpen(w, h) +
-      `<rect x="0" y="${groundY}" width="${w}" height="2" fill="#b8d8e8"/>` +
-      shadowSvg(s, ox, size, groundY, PX) +
-      // A faint light rim so the dark outline still reads on a dark background
-      outline(sp, left, oy, PX, '#5d5658') +
-      pixels(sp, left, oy, PX, SVG) +
-      bubbleSvg(s, ox, oy, size, w, PX) +
-      `</svg>`
-    )
-  },
+      return (
+        svgOpen(w, h) +
+        `<rect x="0" y="${groundY}" width="${w}" height="2" fill="#b8d8e8"/>` +
+        shadowSvg(s, ox, size, groundY, PX) +
+        // A faint light rim so the dark outline still reads on a dark background
+        outline(sp, left, oy, PX, '#5d5658') +
+        pixels(sp, left, oy, PX, SVG) +
+        bubbleSvg(s, ox, oy, size, w, PX) +
+        `</svg>`
+      )
+    },
 
-  lines: {
-    hi: 'noot!',
-    jump: 'wheee!',
-    done: ['noot noot!', 'all done!', '*happy flap*'],
-    abort: 'oh. okay.',
-    error: 'noot?!',
-    snack: ['fish!', '*flop*', 'come here, fish!'],
-    react,
-  },
+    lines: {
+      hi: 'noot!',
+      jump: 'wheee!',
+      done: ['noot noot!', 'all done!', '*happy flap*'],
+      abort: 'oh. okay.',
+      error: 'noot?!',
+      snack: ['fish!', '*flop*', 'come here, fish!'],
+      react,
+    },
+  }
 }
+
+export const penguin = build(NORMAL)
+export const penguinSmall = build(SMALL)

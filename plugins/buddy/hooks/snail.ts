@@ -10,10 +10,34 @@ import type { Character } from './shared'
 // Pixels: E outline and mouth, B shell, b shaded shell, Y spiral, h shine,
 // G body, g belly edge, K eyes, w eye glint, P blush, R open mouth,
 // L lettuce, l lettuce vein, d shaded lettuce, T slime trail, u fading trail, x sparkle
-const W = 19 // columns the snail itself takes
-const LANE = 4 // columns its lettuce takes in front, past `width`
-const H = 14
-const TRAIL = 6 // columns of slime behind it, past `width`
+
+// One size of snail: its poses, its props, and where they go
+type Art = {
+  stand: string[]
+  stretch: string[]
+  bunch: string[]
+  tuck: string[]
+  shell: string[]
+  /** One eye peeking out of the shell, and the row and column it goes at */
+  peek: string[]
+  peekAt: [number, number]
+  /** Stalks for the top rows of the standing pose: drooping asleep, perked up happy */
+  droop: string[]
+  perk: string[]
+  /** The lettuce, bitten down as it eats, and the row and column its frames go at */
+  leaf: string[][]
+  leafAt: [number, number]
+  /** Where the mouth opens while it chews */
+  mouth: [number, number]
+  /** The middle of the twinkle on its shell */
+  twinkle: [number, number]
+  /** The slime on the ground row, far end first, running on under its tail */
+  slime: string
+  /** Columns of slime behind it, past `width` */
+  trail: number
+  /** Columns its lettuce takes in front, past `width` */
+  lane: number
+}
 
 const STAND = [
   '............EE.EE..',
@@ -104,7 +128,7 @@ const SHELL = [
   '....EEEE...........',
 ]
 
-// One eye peeking out of the shell, at row 8, column 10
+// One eye peeking out of the shell
 const PEEK = ['..EE.', '.EKwE', '.EKKE', '.EGE.', 'EGE..', 'E....']
 
 // Stalks for the top five rows of the standing pose: drooping asleep, perked up happy
@@ -124,8 +148,8 @@ const PERK = [
   '.EBYBYYBYBE.EGGGGE.',
 ]
 
-// The lettuce leaf in front of its mouth (row 7, column 17 on, so mostly in the
-// lane ahead), bitten down as it eats
+// The lettuce leaf in front of its mouth (mostly in the lane ahead), bitten
+// down as it eats
 const LEAF = [
   ['..EE..', '.ELLE.', 'ELlLLE', 'ELLlLE', 'EdLLlE', '.EddE.', '..EE..'],
   ['...E..', '..ELE.', '.EllLE', 'ELLlLE', 'EdLLlE', '.EddE.', '..EE..'],
@@ -133,8 +157,122 @@ const LEAF = [
   ['......', '......', '......', '...EE.', '..ElLE', '.EddE.', '..EE..'],
 ]
 
-// The slime behind it on the ground row, far end first, running on under its tail
-const SLIME = '.uuuTTTT'
+const NORMAL: Art = {
+  stand: STAND,
+  stretch: STRETCH,
+  bunch: BUNCH,
+  tuck: TUCK,
+  shell: SHELL,
+  peek: PEEK,
+  peekAt: [8, 10],
+  droop: DROOP,
+  perk: PERK,
+  leaf: LEAF,
+  leafAt: [7, 17],
+  mouth: [9, 14],
+  twinkle: [2, 6],
+  slime: '.uuuTTTT',
+  trail: 6,
+  lane: 4,
+}
+
+// The small snail (/buddy size small): the same poses redrawn smaller, never shrunk
+const SMALL: Art = {
+  stand: [
+    '..........EE.EE..',
+    '...EEEE..EKwEKwE.',
+    '..EhhBBE.EKKEKKE.',
+    '.EhYYYYBE.EGEEGE.',
+    '.EBYBBYBE.EGEGE..',
+    '.EBYBYYbEEGGGGE..',
+    '.EBBYBbbEEGEGPPE.',
+    '..EbbbbEEGGGEEGE.',
+    '.EGEEEEGGGGGGGGE.',
+    'EggggggggggggggE.',
+    '.EEEEEEEEEEEEEE..',
+  ],
+  stretch: [
+    '.................',
+    '...EEEE....EE.EE.',
+    '..EhhBBE..EKwEKwE',
+    '.EhYYYYBE.EKKEKKE',
+    '.EBYBBYBE..EGEGE.',
+    '.EBYBYYbE.EGGGGE.',
+    '.EBBYBbbEEGGEGPPE',
+    '..EbbbbEEGGGGEEGE',
+    '.EGEEEEGGGGGGGGGE',
+    'EgggggggggggggggE',
+    '.EEEEEEEEEEEEEEE.',
+  ],
+  bunch: [
+    '...EEEE...EE.EE..',
+    '..EhhBBE.EKwEKwE.',
+    '.EhYYYYBEEKKEKKE.',
+    '.EBYBBYBE.EGEEGE.',
+    '.EBYBYYbE.EGEEGE.',
+    '.EBBYBbbEEGGGGGE.',
+    '..EbbbbEEGGEGPPE.',
+    '...EEEEEGGGGEEGE.',
+    '..EGGGGGGGGGGGGE.',
+    '.EgggggggggggggE.',
+    '..EEEEEEEEEEEEE..',
+  ],
+  tuck: [
+    '.................',
+    '.................',
+    '...EEEE..........',
+    '..EhhBBE.........',
+    '.EhYYYYBE........',
+    '.EBYBBYBE........',
+    '.EBYBYYbEEE......',
+    '.EBBYBbbEGGE.....',
+    '..EbbbbEGGGGE....',
+    '.EgEEEEggggE.....',
+    '..EEEEEEEEE......',
+  ],
+  shell: [
+    '.................',
+    '.................',
+    '.................',
+    '...EEEE..........',
+    '..EhhBBE.........',
+    '.EhYYYYBE........',
+    '.EBYBBYBE........',
+    '.EBYBYYbE........',
+    '.EBBYBbbE........',
+    '..EbbbbE.........',
+    '...EEEE..........',
+  ],
+  peek: PEEK,
+  peekAt: [5, 8],
+  droop: [
+    '.................',
+    '...EEEE....EE.EE.',
+    '..EhhBBE..EKwEKwE',
+    '.EhYYYYBE.EKKEKKE',
+    '.EBYBBYBE..EGEGE.',
+  ],
+  perk: [
+    '..........EE.EE..',
+    '...EEEE..EKwEKwE.',
+    '..EhhBBE.EKKEKKE.',
+    '.EhYYYYBE.EGEEGE.',
+    '.EBYBBYBE.EGEEGE.',
+    '.EBYBYYbEEGGGGGE.',
+  ],
+  leaf: [
+    ['.EE..', 'ELLE.', 'ElLLE', 'ELlLE', '.EdlE', '..EE.'],
+    ['..E..', '.ELE.', 'ElLLE', 'ELlLE', '.EdlE', '..EE.'],
+    ['.....', '.....', '..EEE', '.ElLE', '.EdlE', '..EE.'],
+    ['.....', '.....', '.....', '...E.', '..EdE', '..EE.'],
+  ],
+  leafAt: [5, 15],
+  mouth: [7, 12],
+  twinkle: [2, 5],
+  slime: '.uuTTTT',
+  trail: 5,
+  lane: 3,
+}
 
 // Each eye is 2 × 2 with its glint (w) top right: redraw both rows
 function eyes(rows: string[], top: string, bottom: string) {
@@ -149,30 +287,31 @@ function eyes(rows: string[], top: string, bottom: string) {
   )
 }
 
-// The snail itself, facing right, W columns wide
+// The snail itself, facing right, as wide as its standing pose
 const hiding = (s: Scene) => (s.spin > 0 && !s.isHappy) || s.isUpset
 
-function pose(s: Scene): string[] {
+function pose(a: Art, s: Scene): string[] {
   // Startled or upset, it hides: in, a peek out near the end, and back out
   if (hiding(s)) {
-    if (s.spin === 1 || s.spin >= 9) return [...TUCK]
-    const rows = [...SHELL]
-    if (s.spin >= 7 || (s.spin === 0 && s.tick % 20 >= 13)) stamp(rows, 8, 10, PEEK)
+    if (s.spin === 1 || s.spin >= 9) return [...a.tuck]
+    const rows = [...a.shell]
+    if (s.spin >= 7 || (s.spin === 0 && s.tick % 20 >= 13)) stamp(rows, a.peekAt[0], a.peekAt[1], a.peek)
     return rows
   }
   let rows: string[]
-  if (s.isAsleep) rows = [...DROOP, ...STAND.slice(DROOP.length)]
-  else if (s.legs === 'a') rows = [...STRETCH]
-  else if (s.legs === 'b') rows = [...BUNCH]
-  else if (s.isHappy) rows = [...PERK, ...STAND.slice(PERK.length)]
-  else rows = [...STAND]
+  if (s.isAsleep) rows = [...a.droop, ...a.stand.slice(a.droop.length)]
+  else if (s.legs === 'a') rows = [...a.stretch]
+  else if (s.legs === 'b') rows = [...a.bunch]
+  else if (s.isHappy) rows = [...a.perk, ...a.stand.slice(a.perk.length)]
+  else rows = [...a.stand]
 
   if (s.isAsleep || s.isBlinking) eyes(rows, 'G', 'K')
   else if (s.isHappy) {
     eyes(rows, 'K', 'G')
     // Its shell twinkles
-    if (Math.floor(s.tick / 3) % 2) stamp(rows, 1, 5, ['.x.', 'xxx', '.x.'])
-    else put(rows, 2, 6, 'x')
+    const [r, c] = a.twinkle
+    if (Math.floor(s.tick / 3) % 2) stamp(rows, r - 1, c - 1, ['.x.', 'xxx', '.x.'])
+    else put(rows, r, c, 'x')
   }
   return rows
 }
@@ -180,24 +319,27 @@ function pose(s: Scene): string[] {
 // The whole drawing, facing right: the slime trail behind and the lettuce
 // ahead (each only as far as the band reaches), the snail between; and how
 // many columns the drawing starts left of the snail once turned to face dir
-function drawing(s: Scene, cols: number): { sp: string[]; offset: number } {
+function drawing(a: Art, s: Scene, cols: number): { sp: string[]; offset: number } {
+  const W = a.stand[0]?.length ?? 0
+  const H = a.stand.length
+  const { trail, lane } = a
   const eating = s.isMunching && !hiding(s)
-  const behind = Math.min(TRAIL, roomAhead(s.x, s.dir === 1 ? -1 : 1, W, cols))
-  const ahead = eating ? Math.min(LANE, roomAhead(s.x, s.dir, W, cols)) : 0
-  const body = pose(s).map(r => r + '.'.repeat(LANE))
+  const behind = Math.min(trail, roomAhead(s.x, s.dir === 1 ? -1 : 1, W, cols))
+  const ahead = eating ? Math.min(lane, roomAhead(s.x, s.dir, W, cols)) : 0
+  const body = pose(a, s).map(r => r + '.'.repeat(lane))
   if (eating) {
-    stamp(body, 7, 17, LEAF[Math.min(3, Math.floor(s.snack / 15))] ?? [])
+    stamp(body, a.leafAt[0], a.leafAt[1], a.leaf[Math.min(3, Math.floor(s.snack / 15))] ?? [])
     // Mouth open, then shut
-    if (s.chew) stamp(body, 9, 14, ['RR', 'EE'])
+    if (s.chew) stamp(body, a.mouth[0], a.mouth[1], ['RR', 'EE'])
   }
   // Slime up to under its tail, a sparkle running back along it
-  const slime = [...SLIME]
+  const slime = [...a.slime]
   const spark = slime.length - 1 - (Math.floor(s.tick / 2) % (slime.length + 6))
   if (slime[spark] === 'T' || slime[spark] === 'u') slime[spark] = 'x'
-  const rows = Array.from({ length: H }, () => '.'.repeat(TRAIL + W + LANE))
+  const rows = Array.from({ length: H }, () => '.'.repeat(trail + W + lane))
   stamp(rows, H - 1, 0, [slime.join('')])
-  stamp(rows, 0, TRAIL, body)
-  const sp = rows.map(r => r.slice(TRAIL - behind, TRAIL + W + ahead))
+  stamp(rows, 0, trail, body)
+  const sp = rows.map(r => r.slice(trail - behind, trail + W + ahead))
   return { sp: mirror(sp, s.dir), offset: s.dir === 1 ? behind : ahead }
 }
 
@@ -241,7 +383,6 @@ const SVG = {
   x: '#ffffff',
 }
 
-const PATH = ".'..,.'..'.,...,'..'.,."
 
 const PX = 6
 const CELL = 8
@@ -260,53 +401,58 @@ function react(text: string): string {
   return pick(['no rush', 'slow and steady', 'mm, I see', '*inches along*'])
 }
 
-export const snail: Character = {
-  width: W,
-  canMunch: true,
-  rolls: true, // never jumps: a startle sends it into its shell
-  stride: 0,
-  pace: 4, // the slowest buddy
-  snackLane: LANE,
-  chases: false,
+function build(a: Art): Character {
+  const W = a.stand[0]?.length ?? 0 // columns the snail itself takes
+  const H = a.stand.length
+  // Pixel rows, kept even so its foot stays on the ground row
+  const termRows = H + (H % 2)
+  return {
+    width: W,
+    canMunch: true,
+    rolls: true, // never jumps: a startle sends it into its shell
+    stride: 0,
+    pace: 4, // the slowest buddy
+    snackLane: a.lane,
+    chases: false,
 
-  terminal(s, cols, rows) {
-    let ground = ''
-    for (let i = 0; i < cols; i++) ground += PATH[i % PATH.length]
-    const { sp, offset } = drawing(s, cols)
-    const pixelRows = Math.min(H, rows - (rows % 2))
-    return {
-      rows: halfBlocks(sp, pixelRows - H, sp[0]?.length ?? W, pixelRows, TERM),
-      ground,
-      groundColor: 'green',
-      offset,
-    }
-  },
+    terminal(s, cols, rows) {
+      const { sp, offset } = drawing(a, s, cols)
+      const pixelRows = Math.min(termRows, rows - (rows % 2))
+      return {
+        rows: halfBlocks(sp, pixelRows - H, sp[0]?.length ?? W, pixelRows, TERM),
+        offset,
+      }
+    },
 
-  svg(s, cols) {
-    const { sp, offset } = drawing(s, cols)
-    const w = cols * CELL
-    const groundY = H * PX + AIR * LIFT + 3 * PX
-    const h = groundY + 3 * PX
-    const ox = s.x * CELL
-    const oy = groundY - H * PX
-    return (
-      svgOpen(w, h) +
-      `<rect x="0" y="${groundY}" width="${w}" height="2" fill="#8fa886"/>` +
-      // A faint light rim so the dark outline still reads on a dark background
-      outline(sp, ox - offset * PX, oy, PX, '#5d5658') +
-      pixels(sp, ox - offset * PX, oy, PX, SVG) +
-      bubbleSvg(s, ox, oy, W * PX, w, PX) +
-      `</svg>`
-    )
-  },
+    svg(s, cols) {
+      const { sp, offset } = drawing(a, s, cols)
+      const w = cols * CELL
+      const groundY = H * PX + AIR * LIFT + 3 * PX
+      const h = groundY + 3 * PX
+      const ox = s.x * CELL
+      const oy = groundY - H * PX
+      return (
+        svgOpen(w, h) +
+        `<rect x="0" y="${groundY}" width="${w}" height="2" fill="#8fa886"/>` +
+        // A faint light rim so the dark outline still reads on a dark background
+        outline(sp, ox - offset * PX, oy, PX, '#5d5658') +
+        pixels(sp, ox - offset * PX, oy, PX, SVG) +
+        bubbleSvg(s, ox, oy, W * PX, w, PX) +
+        `</svg>`
+      )
+    },
 
-  lines: {
-    hi: 'oh, hello...',
-    jump: 'eep!',
-    done: ['made it... slowly', 'one step at a time', '*happy slime*'],
-    abort: 'oh... okay.',
-    error: '*hides*',
-    snack: ['*munch*', 'lettuce...'],
-    react,
-  },
+    lines: {
+      hi: 'oh, hello...',
+      jump: 'eep!',
+      done: ['made it... slowly', 'one step at a time', '*happy slime*'],
+      abort: 'oh... okay.',
+      error: '*hides*',
+      snack: ['*munch*', 'lettuce...'],
+      react,
+    },
+  }
 }
+
+export const snail = build(NORMAL)
+export const snailSmall = build(SMALL)

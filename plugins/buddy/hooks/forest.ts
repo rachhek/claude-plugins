@@ -476,7 +476,6 @@ function picture(s: Scene, w: number): string[] {
 
 const PX = 6
 const CELL = 8
-const GROUND = ",'.'`,.''.,`'."
 
 export const forest: Character = {
   width: 0,
@@ -492,9 +491,7 @@ export const forest: Character = {
     const fit = Math.min(H, rows - (rows % 2))
     const sp = picture(s, cols).slice(H - fit)
     const cells = halfBlocks(sp, 0, cols, fit, s.isAsleep ? NIGHT : DAY)
-    let ground = ''
-    for (let i = 0; i < cols; i++) ground += GROUND[i % GROUND.length]
-    return { rows: cells, ground, groundColor: 'green', offset: s.x }
+    return { rows: cells, offset: s.x }
   },
 
   svg(s, cols) {

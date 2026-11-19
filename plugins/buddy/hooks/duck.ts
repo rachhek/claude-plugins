@@ -10,9 +10,32 @@ import type { Character } from './shared'
 // Pixels: E outline, Y yellow, S shaded yellow and wing, H rubber sheen,
 // O beak, o lower beak, K eye, w eye glint, B water, b ripples and drops,
 // C bread crust, c crumb
-const W = 23 // the duck, a pixel of water behind and room in front for crumbs and its dip
-const H = 14
-const AIR = 4
+// One size of duck: its poses, and where its eye, ruffled feathers and
+// everything on the water go
+type Art = {
+  /** Canvas columns: the duck, a pixel of water behind and room in front for crumbs and its dip */
+  w: number
+  h: number
+  /** Headroom for a hop */
+  air: number
+  float: string[]
+  tip: string[]
+  wingUp: string[]
+  dip: string[]
+  tuck: string[]
+  /** Where the eye overlays go (row, column), floating and dipped */
+  eye: [number, number]
+  dipEye: [number, number]
+  /** Upset: ruffled feathers and a bead of sweat, from two rows above the duck */
+  ruffle: string[]
+  water: string[]
+  splash: string[]
+  splashWater: string
+  paddle: string[][]
+  crumbs: string[][]
+  /** Column the crumbs float at */
+  crumbsAt: number
+}
 
 const HEAD = [
   '..........EEEE......',
@@ -101,70 +124,168 @@ const TUCK = [
   '....EEEEEEEEEEE.....',
 ]
 
-// The water line under it, rippling differently on each bob
-const WATER = ['bBBb.BBBBBBBBBBBBb.bB..', '.bBBBBBBBBBBBBBBBBBb.b.']
-// Landing from a hop: a splash of drops both sides
-const SPLASH = ['b.b..................b.', '.....................b.', '.b.................b...', 'b...................b.b']
-const SPLASH_WATER = 'bbBBbBBBBBBBBBBBBBbBbbb'
-// Paddling behind it while Claude works
-const PADDLE = [
-  ['...', 'b..', '..b'],
-  ['.b.', '...', 'b..'],
-]
-// Bread crumbs floating just in front, bobbing
-const CRUMBS = [
-  ['cC..', '...c'],
-  ['Cc.c', '....'],
-]
+const NORMAL: Art = {
+  w: 23,
+  h: 14,
+  air: 4,
+  float: FLOAT,
+  tip: TIP,
+  wingUp: WING_UP,
+  dip: DIP,
+  tuck: TUCK,
+  eye: [3, 13],
+  dipEye: [4, 14],
+  ruffle: ['..........S.S', '...........S.S', '.................b', '.................b', '', '', '', '', '...S', '....S'],
+  // The water line under it, rippling differently on each bob
+  water: ['bBBb.BBBBBBBBBBBBb.bB..', '.bBBBBBBBBBBBBBBBBBb.b.'],
+  // Landing from a hop: a splash of drops both sides
+  splash: ['b.b..................b.', '.....................b.', '.b.................b...', 'b...................b.b'],
+  splashWater: 'bbBBbBBBBBBBBBBBBBbBbbb',
+  // Paddling behind it while Claude works
+  paddle: [
+    ['...', 'b..', '..b'],
+    ['.b.', '...', 'b..'],
+  ],
+  // Bread crumbs floating just in front, bobbing
+  crumbs: [
+    ['cC..', '...c'],
+    ['Cc.c', '....'],
+  ],
+  crumbsAt: 19,
+}
 
-const blank = () => Array<string>(H + AIR).fill('.'.repeat(W))
+// The small duck (/buddy size small): the same poses redrawn smaller, never shrunk
+const SMALL: Art = {
+  w: 18,
+  h: 11,
+  air: 3,
+  float: [
+    '.......EEEE.....',
+    '......EYYYYE....',
+    '.....EYHHYKwE...',
+    '.....EYHYYKKEEE.',
+    '.EE..EYYYYYYEOOE',
+    '.EYE.EYYYYYYEooE',
+    '.EYYEYYYYYYYYEE.',
+    'EYYSSSSYYYYHYE..',
+    'EYYYSYYYSYYHYE..',
+    '.EESSSSSSSSSE...',
+    '...EEEEEEEEE....',
+  ],
+  tip: [
+    '.......EEEE.....',
+    '......EYYYYE....',
+    '.....EYHHYKwE...',
+    '.EE..EYHYYKKEEE.',
+    '.EYE.EYYYYYYEOOE',
+    '.EYYEEYYYYYYEooE',
+    '.EYYYEYYYYYYYEE.',
+    'EYYSSSSYYYYHYE..',
+    'EYYYSYYYSYYHYE..',
+    '.EESSSSSSSSSE...',
+    '...EEEEEEEEE....',
+  ],
+  wingUp: [
+    '.......EEEE.....',
+    '......EYYYYE....',
+    '.....EYHHYKwE...',
+    '..EE.EYHYYKKEEE.',
+    '.ESSEEYYYYYYEOOE',
+    '.EESSEYYYYYYEooE',
+    '.EYESSYYYYYYYEE.',
+    'EYYYESYYYYYHYE..',
+    'EYYYYYYYYYYHYE..',
+    '.EESSSSSSSSSE...',
+    '...EEEEEEEEE....',
+  ],
+  dip: [
+    '.................',
+    '.................',
+    '........EEEE.....',
+    '.......EYYYYE....',
+    '.EE...EYHHYKwE...',
+    '.EYE..EYHYYKKEEE.',
+    '.EYYEEYYYYYYYEOOE',
+    'EYYSSSSYYYYYYEooE',
+    'EYYYSYYYSYYHYYEE.',
+    '.EESSSSSSSSSSE...',
+    '...EEEEEEEEEE....',
+  ],
+  tuck: [
+    '................',
+    '.......EEEE.....',
+    '......EYYYYE....',
+    '.....EYHHYYYE...',
+    '.EE..EYHYKKYEE..',
+    '.EYE.EYYYYYYEOE.',
+    '.EYYEYYYYYYYEoE.',
+    'EYYSSSSYYYYHYE..',
+    'EYYYSYYYSYYHYE..',
+    '.EESSSSSSSSSE...',
+    '...EEEEEEEEE....',
+  ],
+  eye: [2, 9],
+  dipEye: [4, 10],
+  ruffle: ['.......S.S', '........S.S', '.............b', '.............b', '', '', '...S', '....S'],
+  water: ['bBb.BBBBBBBBBBb.bB', '.bBBBBBBBBBBBBBb.b'],
+  splash: ['.b..............b.', 'b..............b..', '...............b.b'],
+  splashWater: 'bbBbBBBBBBBBBBbBbb',
+  paddle: [
+    ['..', 'b.'],
+    ['b.', '..'],
+  ],
+  crumbs: [
+    ['Cc.', '..c'],
+    ['cCc', '...'],
+  ],
+  crumbsAt: 15,
+}
 
 // The duck alone, in a canvas with headroom for a hop, and the water and
 // whatever floats on it; the water is laid over the duck
-function layers(s: Scene): { duck: string[]; water: string[]; top: number } {
+function layers(a: Art, s: Scene): { duck: string[]; water: string[]; top: number } {
+  const blank = () => Array<string>(a.h + a.air).fill('.'.repeat(a.w))
   const dip = s.isMunching && s.chew && !s.isAsleep
-  let pose = FLOAT
+  let pose = a.float
   let bob = 0
-  if (s.isAsleep) pose = TUCK
-  else if (dip) pose = DIP
-  else if (s.air > 0 || s.isMunching || s.legs === 'a' || s.legs === 'sit') pose = FLOAT
+  if (s.isAsleep) pose = a.tuck
+  else if (dip) pose = a.dip
+  else if (s.air > 0 || s.isMunching || s.legs === 'a' || s.legs === 'sit') pose = a.float
   else if (s.legs === 'b') {
-    pose = TIP
+    pose = a.tip
     bob = 1
   } else bob = Math.floor(s.tick / 8) % 2 // standing still, a gentle bob
-  const d = [...(s.isHappy && pose === FLOAT ? WING_UP : pose)]
+  const d = [...(s.isHappy && pose === a.float ? a.wingUp : pose)]
 
-  // The eye: at its 2 × 2 pupil, a row lower and a column on when dipped
-  const er = pose === DIP ? 4 : 3
-  const ec = pose === DIP ? 14 : 13
-  if (pose !== TUCK) {
+  // The eye: at its 2 × 2 pupil, lower and a column on when dipped
+  const [er, ec] = pose === a.dip ? a.dipEye : a.eye
+  if (pose !== a.tuck) {
     if (s.isHappy) stamp(d, er, ec, ['YKK', 'KYY'])
     else if (s.isBlinking) stamp(d, er, ec + 1, ['YY', 'KK'])
     else if (s.isUpset) stamp(d, er - 1, ec, ['K..', 'YKw', 'YKK'])
   }
 
-  const top = AIR - s.air + bob
+  // A hop no higher than its headroom
+  const top = a.air - Math.min(s.air, a.air) + bob
   const duck = blank()
   stamp(duck, top, 1, d)
   // Upset: feathers ruffled on its head and back, a bead of sweat
-  if (s.isUpset && pose !== TUCK) {
-    stamp(duck, top - 2, 1, ['..........S.S', '...........S.S', '.................b', '.................b'])
-    stamp(duck, top + 6, 1, ['...S', '....S'])
-  }
+  if (s.isUpset && pose !== a.tuck) stamp(duck, top - 2, 1, a.ruffle)
 
   const water = blank()
-  const last = H + AIR - 1
+  const last = a.h + a.air - 1
   if (s.air === 0 && s.spin > 0) {
-    stamp(water, last - 4, 0, SPLASH)
-    stamp(water, last, 0, [SPLASH_WATER])
-  } else stamp(water, last, 0, [WATER[pose === DIP ? 0 : bob] ?? ''])
-  if (s.isWorking && s.air === 0) stamp(water, last - 3, 0, PADDLE[s.legs === 'b' ? 1 : 0] ?? [])
-  if (s.isMunching) stamp(water, last - 1, 19, CRUMBS[s.chew ? 0 : 1] ?? [])
+    stamp(water, last - a.splash.length, 0, a.splash)
+    stamp(water, last, 0, [a.splashWater])
+  } else stamp(water, last, 0, [a.water[pose === a.dip ? 0 : bob] ?? ''])
+  const paddle = a.paddle[s.legs === 'b' ? 1 : 0] ?? []
+  if (s.isWorking && s.air === 0) stamp(water, last - paddle.length, 0, paddle)
+  if (s.isMunching) stamp(water, last - 1, a.crumbsAt, a.crumbs[s.chew ? 0 : 1] ?? [])
   return { duck: mirror(duck, s.dir), water: mirror(water, s.dir), top }
 }
 
-function sprite(s: Scene): string[] {
-  const { duck, water } = layers(s)
+function sprite(a: Art, s: Scene): string[] {
+  const { duck, water } = layers(a, s)
   const rows = [...duck]
   stamp(rows, 0, 0, water)
   return rows
@@ -186,7 +307,6 @@ const TERM = {
 }
 const SVG = { ...TERM, E: '#241a10', K: '#140f0a' }
 
-const GROUND = '~~-~~~~^~~-~~~~~~^~-~~~'
 
 const PX = 6
 const CELL = 8
@@ -201,55 +321,56 @@ function react(text: string): string {
   return pick(['quack!', 'quack quack', '*squeak*', '*bob bob*', '*paddles*'])
 }
 
-export const duck: Character = {
-  width: W,
-  canMunch: true,
-  rolls: false,
-  stride: 0,
-  pace: 2, // a lazy paddle
-  snackLane: 0,
-  chases: false,
+function build(a: Art): Character {
+  return {
+    width: a.w,
+    canMunch: true,
+    rolls: false,
+    stride: 0,
+    pace: 2, // a lazy paddle
+    snackLane: 0,
+    chases: false,
 
-  terminal(s, cols, rows) {
-    let ground = ''
-    for (let i = 0; i < cols; i++) ground += GROUND[(i + s.ground) % GROUND.length]
-    // As many pixel rows as the band allows, the water on the bottom row
-    const pixelRows = Math.min(H + AIR, rows - (rows % 2))
-    return {
-      rows: halfBlocks(sprite(s), pixelRows - H - AIR, W, pixelRows, TERM),
-      ground,
-      groundColor: 'cyan',
-    }
-  },
+    terminal(s, cols, rows) {
+      // As many pixel rows as the band allows, the water on the bottom row
+      const pixelRows = Math.min(a.h + a.air, rows - (rows % 2))
+      return {
+        rows: halfBlocks(sprite(a, s), pixelRows - a.h - a.air, a.w, pixelRows, TERM),
+      }
+    },
 
-  svg(s, cols) {
-    const { duck, water, top } = layers(s)
-    const w = cols * CELL
-    const groundY = (H + AIR) * PX
-    const h = groundY + 3 * PX
-    const ox = s.x * CELL
-    // The canvas's bottom row is the water, sitting on the water line
-    const oy = groundY - (H + AIR - 1) * PX
+    svg(s, cols) {
+      const { duck, water, top } = layers(a, s)
+      const w = cols * CELL
+      const groundY = (a.h + a.air) * PX
+      const h = groundY + 3 * PX
+      const ox = s.x * CELL
+      // The canvas's bottom row is the water, sitting on the water line
+      const oy = groundY - (a.h + a.air - 1) * PX
 
-    return (
-      svgOpen(w, h) +
-      `<rect x="0" y="${groundY}" width="${w}" height="2" fill="#9fd4ee"/>` +
-      // A faint light rim so the dark outline still reads on a dark background
-      outline(duck, ox, oy, PX, '#5d5658') +
-      pixels(duck, ox, oy, PX, SVG) +
-      pixels(water, ox, oy, PX, SVG) +
-      bubbleSvg(s, ox, oy + top * PX, W * PX, w, PX) +
-      `</svg>`
-    )
-  },
+      return (
+        svgOpen(w, h) +
+        `<rect x="0" y="${groundY}" width="${w}" height="2" fill="#9fd4ee"/>` +
+        // A faint light rim so the dark outline still reads on a dark background
+        outline(duck, ox, oy, PX, '#5d5658') +
+        pixels(duck, ox, oy, PX, SVG) +
+        pixels(water, ox, oy, PX, SVG) +
+        bubbleSvg(s, ox, oy + top * PX, a.w * PX, w, PX) +
+        `</svg>`
+      )
+    },
 
-  lines: {
-    hi: 'quack!',
-    jump: 'squeak!',
-    done: ['quack quack!', 'i just listened', '*proud squeak*'],
-    abort: 'quack?!',
-    error: '*squeak*',
-    snack: ['*nibble*', 'crumbs!', 'bread!!'],
-    react,
-  },
+    lines: {
+      hi: 'quack!',
+      jump: 'squeak!',
+      done: ['quack quack!', 'i just listened', '*proud squeak*'],
+      abort: 'quack?!',
+      error: '*squeak*',
+      snack: ['*nibble*', 'crumbs!', 'bread!!'],
+      react,
+    },
+  }
 }
+
+export const duck = build(NORMAL)
+export const duckSmall = build(SMALL)
